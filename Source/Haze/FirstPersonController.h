@@ -3,7 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "Camera/CameraComponent.h"
+
+#include "Components/InputComponent.h"
+
 #include "GameFramework/Character.h"
+#include "GameFramework/SpringArmComponent.h"
+
 #include "FirstPersonController.generated.h"
 
 UCLASS()
@@ -26,4 +33,23 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USpringArmComponent* SpringArm;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UCameraComponent* Camera;
+
+	void Jump();
+
+	UFUNCTION(BlueprintCallable)
+	void MoveForward(float mValue);
+
+	UFUNCTION(BlueprintCallable)
+	void MoveRight(float mValue);
+
+	UFUNCTION(BlueprintCallable)
+	void MoveCameraHorizontal(float mAmount);
+
+	UFUNCTION(BlueprintCallable)
+	void MoveCameraVertical(float mAmount);
 };
