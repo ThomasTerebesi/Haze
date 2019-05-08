@@ -7,9 +7,14 @@
 #include "Camera/CameraComponent.h"
 
 #include "Components/InputComponent.h"
+#include "Components/SphereComponent.h"
+
+#include "DrawDebugHelpers.h"
 
 #include "GameFramework/Character.h"
 #include "GameFramework/SpringArmComponent.h"
+
+#include "Kismet/KismetMathLibrary.h"
 
 #include "TimeTravelController.generated.h"
 
@@ -39,6 +44,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UCameraComponent* Camera;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USphereComponent* SphereComponent;
+
 	void Jump();
 
 	UFUNCTION(BlueprintCallable)
@@ -55,4 +63,53 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void Recall();
+
+	UFUNCTION(BlueprintCallable)
+	void ResetRecallCooldown();
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool EnableDebug;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool ShowRecallTransforms;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	bool CanSetPosition;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	float StorePositionDelay;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	int32 MaxStoredRecallTransforms;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	float RecallLocationSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	float RecallRotationSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	float RecallCooldown;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	float RecallTolerance;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	bool CanRecall;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	bool RecallPressed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	int32 RecallTransformCounter;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	TArray<FTransform> RecallTransforms;
+
+private:
+	void AddRecallTransform();
+
+	FTimerHandle StorePositionDelayHandle;
+
+	FTimerHandle RecallCooldownHandle;
 };
