@@ -20,15 +20,13 @@ ATimeTravelController::ATimeTravelController()
 	SpringArm->TargetArmLength = 0.0f;
 	SpringArm->bUsePawnControlRotation = true;
 
-	Camera->FieldOfView = 110.0f;
-
 	SphereComponent->SetSphereRadius(128.0f);	// TODO: Make this sphere component collide so that player cannot recall outside of level limits
 
 	EnableDebug = true;
 	ShowRecallTransforms = true;
 
 	CanSetPosition = true;
-	StorePositionDelay = 0.3f;
+	StorePositionDelay = 0.2f;
 	MaxStoredRecallTransforms = 64;
 	CanRecall = true;
 	RecallPressed = false;
@@ -38,7 +36,13 @@ ATimeTravelController::ATimeTravelController()
 	RecallTransformCounter = 0;
 	RecallCooldown = 6.0f;
 	RecallTolerance = 128.0f;
-	IsRunning = false;	// TODO: Implement camera FoV change from 100.0f to 110.0f
+	
+	IsRunningForward = false;
+	StandardFieldOfView = 100.0f;
+	ForwardFieldOfView = 104.0f;
+	FieldOfViewSpeed = 6.0f;
+
+	Camera->FieldOfView = StandardFieldOfView;
 }
 
 // Called when the game starts or when spawned
@@ -74,10 +78,9 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 		if (UKismetMathLibrary::NearlyEqual_TransformTransform(GetActorTransform(), RecallTransforms[RecallTransformCounter], RecallTolerance, RecallTolerance, RecallTolerance))
 		{
+			// Stop recall and remove only the used elements from RecallTransformsArray
 			if (RecallStopped)
 			{
-				UE_LOG(LogTemp, Error, TEXT("REEEEE"));
-
 				CanSetPosition = true;
 				RecallPressed = false;
 				RecallStopped = false;
@@ -85,7 +88,11 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 				for (int8 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Removing RecallTransforms[%d]."), i);
+					if (EnableDebug && ShowRecallTransforms)
+					{
+						UE_LOG(LogTemp, Warning, TEXT("Removing RecallTransforms[%d]."), i);
+					}
+
 					RecallTransforms.RemoveAt(i);
 				}
 			}
@@ -101,6 +108,19 @@ void ATimeTravelController::Tick(float DeltaTime)
 				RecallTransforms.Empty();
 				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
 			}
+		}
+	}
+
+	// Setting the camera component's field of view when running forward
+	if (IsRunningForward && Camera->FieldOfView < ForwardFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, DeltaTime, FieldOfViewSpeed);
+	}
+	else
+	{
+		if (Camera->FieldOfView > StandardFieldOfView)
+		{
+			Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, DeltaTime, FieldOfViewSpeed);
 		}
 	}
 }
@@ -128,6 +148,9 @@ void ATimeTravelController::Jump()
 
 void ATimeTravelController::MoveForward(float mValue)
 {
+	// Determining whether player character is running forward in order to set the camera component's field of view accordingly
+	mValue > 0 ? IsRunningForward = true : IsRunningForward = false;
+
 	AddMovementInput(GetActorForwardVector(), mValue);
 }
 
@@ -155,10 +178,10 @@ void ATimeTravelController::Recall()
 		CanSetPosition = false;
 
 		RecallTransformCounter = RecallTransforms.Num() - 1;
-	} else if (RecallPressed)
+	} 
+	else if (RecallPressed)
 	{
 		RecallStopped = true;
-		UE_LOG(LogTemp, Error, TEXT("RecallStopped = true"));
 	}
 }
 
@@ -175,4 +198,3 @@ void ATimeTravelController::AddRecallTransform()
 		UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
 	}
 }
-

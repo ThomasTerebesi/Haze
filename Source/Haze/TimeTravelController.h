@@ -104,13 +104,22 @@ public:
 	bool RecallStopped;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
-	bool Running;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	int32 RecallTransformCounter;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	TArray<FTransform> RecallTransforms;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
+	float StandardFieldOfView;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
+	float ForwardFieldOfView;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
+	float FieldOfViewSpeed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Other")
+	bool IsRunningForward;
 
 private:
 	void AddRecallTransform();
