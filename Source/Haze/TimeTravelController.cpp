@@ -8,26 +8,14 @@ ATimeTravelController::ATimeTravelController()
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
-	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
-	SphereComponent = CreateDefaultSubobject<USphereComponent>("SphereCollider");
-
-	SpringArm->SetupAttachment(RootComponent);
-	Camera->SetupAttachment(SpringArm);
-	SphereComponent->SetupAttachment(RootComponent);
-
-	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
-	SpringArm->TargetArmLength = 0.0f;
-	SpringArm->bUsePawnControlRotation = true;
-
-	SphereComponent->SetSphereRadius(128.0f);	// TODO: Make this sphere component collide so that player cannot recall outside of level limits
-
+	// "Debug" category setup
 	EnableDebug = true;
 	ShowRecallTransforms = true;
 
+	// "Recall" category setup
 	CanSetPosition = true;
-	StorePositionDelay = 0.2f;
-	MaxStoredRecallTransforms = 64;
+	StorePositionDelay = 0.1f;
+	MaxStoredRecallTransforms = 128;
 	CanRecall = true;
 	RecallPressed = false;
 	RecallStopped = false;
@@ -37,19 +25,35 @@ ATimeTravelController::ATimeTravelController()
 	RecallCooldown = 6.0f;
 	RecallTolerance = 128.0f;
 	
+	// "Other" category setup
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
 	ForwardFieldOfView = 104.0f;
+	RecallFieldOfView = 80.0f;
 	FieldOfViewSpeed = 6.0f;
+	
+	// Component setup
+	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
+	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+
+	SpringArm->SetupAttachment(RootComponent);
+	Camera->SetupAttachment(SpringArm);
+
+	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
+	SpringArm->TargetArmLength = 0.0f;
+	SpringArm->bUsePawnControlRotation = true;
 
 	Camera->FieldOfView = StandardFieldOfView;
+
+	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
 }
 
 // Called when the game starts or when spawned
 void ATimeTravelController::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	// Adding new elements to RecallTransforms in regular intervals
 	GetWorld()->GetTimerManager().SetTimer(StorePositionDelayHandle, this, &ATimeTravelController::AddRecallTransform, StorePositionDelay, true);
 }
 
@@ -60,6 +64,7 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 	if (CanSetPosition)
 	{
+		// Removing elements from RecallTransforms if the number of elements is above a certain threshold
 		if (RecallTransforms.Num() >= MaxStoredRecallTransforms)
 		{
 			RecallTransforms.RemoveAt(0);
@@ -73,6 +78,7 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 	if (RecallTransforms.Num() > 0 && RecallPressed)
 	{
+		// TODO: Player character gets stuck when a position is in the air, needs to jump to continue; re-research and maybe use a function from Kismet/Blueprint?
 		SetActorLocation(FMath::VInterpTo(GetActorTransform().GetLocation(), RecallTransforms[RecallTransformCounter].GetLocation(), DeltaTime, RecallLocationSpeed));
 		SetActorRotation(FMath::RInterpTo(GetActorTransform().GetRotation().Rotator(), RecallTransforms[RecallTransformCounter].GetRotation().Rotator(), DeltaTime, RecallRotationSpeed));
 
@@ -81,20 +87,20 @@ void ATimeTravelController::Tick(float DeltaTime)
 			// Stop recall and remove only the used elements from RecallTransformsArray
 			if (RecallStopped)
 			{
-				CanSetPosition = true;
-				RecallPressed = false;
-				RecallStopped = false;
-				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
-
 				for (int8 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
 				{
 					if (EnableDebug && ShowRecallTransforms)
 					{
-						UE_LOG(LogTemp, Warning, TEXT("Removing RecallTransforms[%d]."), i);
+						UE_LOG(LogTemp, Error, TEXT("Removed: %s."), *RecallTransforms[i].ToString());
 					}
 
 					RecallTransforms.RemoveAt(i);
 				}
+
+				CanSetPosition = true;
+				RecallPressed = false;
+				RecallStopped = false;
+				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
 			}
 
 			if (RecallTransformCounter != 0)
@@ -107,21 +113,27 @@ void ATimeTravelController::Tick(float DeltaTime)
 				RecallPressed = false;
 				RecallTransforms.Empty();
 				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
+
+				if (EnableDebug && ShowRecallTransforms)
+				{
+					UE_LOG(LogTemp, Error, TEXT("Cleared RemoveTransforms."));
+				}
 			}
 		}
 	}
 
-	// Setting the camera component's field of view when running forward
+	// Setting the camera component's field of view depending on the situation
 	if (IsRunningForward && Camera->FieldOfView < ForwardFieldOfView)
 	{
 		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, DeltaTime, FieldOfViewSpeed);
 	}
-	else
+	else if (RecallPressed && Camera->FieldOfView > RecallFieldOfView)
 	{
-		if (Camera->FieldOfView > StandardFieldOfView)
-		{
-			Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, DeltaTime, FieldOfViewSpeed);
-		}
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, RecallFieldOfView, DeltaTime, FieldOfViewSpeed);
+	}
+	else if (Camera->FieldOfView != StandardFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, DeltaTime, FieldOfViewSpeed);
 	}
 }
 
@@ -171,17 +183,28 @@ void ATimeTravelController::MoveCameraVertical(float mAmount)
 
 void ATimeTravelController::Recall()
 {
-	if (CanRecall)
-	{
-		RecallPressed = true;
-		CanRecall = false;
-		CanSetPosition = false;
+	if (RecallTransforms.Num() > 0)
+	{	
+		// Recall if the cooldown is not active, else abort an active recall
+		if (CanRecall)
+		{
+			RecallPressed = true;
+			CanRecall = false;
+			CanSetPosition = false;
 
-		RecallTransformCounter = RecallTransforms.Num() - 1;
-	} 
-	else if (RecallPressed)
+			RecallTransformCounter = RecallTransforms.Num() - 1;
+		}
+		else if (RecallPressed)
+		{
+			RecallStopped = true;
+		}
+	}
+	else
 	{
-		RecallStopped = true;
+		if (EnableDebug && ShowRecallTransforms)
+		{
+			UE_LOG(LogTemp, Error, TEXT("RecallTransforms is empty."));
+		}
 	}
 }
 
@@ -192,9 +215,14 @@ void ATimeTravelController::ResetRecallCooldown()
 
 void ATimeTravelController::AddRecallTransform()
 {
-	RecallTransforms.Add(GetActorTransform());
-	if (EnableDebug && ShowRecallTransforms)
+	// Only do this while recall is inactive
+	if (CanSetPosition)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
+		RecallTransforms.Add(GetActorTransform());
+
+		if (EnableDebug && ShowRecallTransforms)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
+		}
 	}
 }

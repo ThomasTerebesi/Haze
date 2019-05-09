@@ -7,7 +7,7 @@
 #include "Camera/CameraComponent.h"
 
 #include "Components/InputComponent.h"
-#include "Components/SphereComponent.h"
+#include "Components/CapsuleComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -43,9 +43,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UCameraComponent* Camera;
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
-	USphereComponent* SphereComponent;
 
 	void Jump();
 
@@ -114,6 +111,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
 	float ForwardFieldOfView;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
+	float RecallFieldOfView;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
 	float FieldOfViewSpeed;
