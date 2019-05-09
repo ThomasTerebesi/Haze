@@ -101,6 +101,12 @@ public:
 	bool RecallPressed;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	bool RecallStopped;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
+	bool Running;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	int32 RecallTransformCounter;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")

@@ -32,11 +32,13 @@ ATimeTravelController::ATimeTravelController()
 	MaxStoredRecallTransforms = 64;
 	CanRecall = true;
 	RecallPressed = false;
+	RecallStopped = false;
 	RecallLocationSpeed = 10.0f;
 	RecallRotationSpeed = 7.0f;
 	RecallTransformCounter = 0;
 	RecallCooldown = 6.0f;
 	RecallTolerance = 128.0f;
+	IsRunning = false;	// TODO: Implement camera FoV change from 100.0f to 110.0f
 }
 
 // Called when the game starts or when spawned
@@ -72,6 +74,22 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 		if (UKismetMathLibrary::NearlyEqual_TransformTransform(GetActorTransform(), RecallTransforms[RecallTransformCounter], RecallTolerance, RecallTolerance, RecallTolerance))
 		{
+			if (RecallStopped)
+			{
+				UE_LOG(LogTemp, Error, TEXT("REEEEE"));
+
+				CanSetPosition = true;
+				RecallPressed = false;
+				RecallStopped = false;
+				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
+
+				for (int8 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
+				{
+					UE_LOG(LogTemp, Warning, TEXT("Removing RecallTransforms[%d]."), i);
+					RecallTransforms.RemoveAt(i);
+				}
+			}
+
 			if (RecallTransformCounter != 0)
 			{
 				RecallTransformCounter--;
@@ -137,6 +155,10 @@ void ATimeTravelController::Recall()
 		CanSetPosition = false;
 
 		RecallTransformCounter = RecallTransforms.Num() - 1;
+	} else if (RecallPressed)
+	{
+		RecallStopped = true;
+		UE_LOG(LogTemp, Error, TEXT("RecallStopped = true"));
 	}
 }
 
