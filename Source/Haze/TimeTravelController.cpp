@@ -5,7 +5,7 @@
 // Sets default values
 ATimeTravelController::ATimeTravelController()
 {
- 	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
+	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
 	// "Debug" category setup
@@ -14,24 +14,25 @@ ATimeTravelController::ATimeTravelController()
 
 	// "Recall" category setup
 	CanSetPosition = true;
-	StorePositionDelay = 0.1f;
-	MaxStoredRecallTransforms = 128;
+	StorePositionDelay = 0.05f;
+	MaxStoredRecallTransforms = 256;
 	CanRecall = true;
-	RecallPressed = false;
+	IsRecallActive = false;
 	RecallStopped = false;
-	RecallLocationSpeed = 10.0f;
-	RecallRotationSpeed = 7.0f;
+	RecallLocationSpeed = 24.0f;
+	RecallRotationSpeed = 8.0f;
 	RecallTransformCounter = 0;
 	RecallCooldown = 6.0f;
 	RecallTolerance = 128.0f;
-	
+	EnableRecallRotation = false;
+
 	// "Other" category setup
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
 	ForwardFieldOfView = 104.0f;
 	RecallFieldOfView = 80.0f;
 	FieldOfViewSpeed = 6.0f;
-	
+
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
@@ -54,7 +55,7 @@ void ATimeTravelController::BeginPlay()
 	Super::BeginPlay();
 
 	// Adding new elements to RecallTransforms in regular intervals
-	GetWorld()->GetTimerManager().SetTimer(StorePositionDelayHandle, this, &ATimeTravelController::AddRecallTransform, StorePositionDelay, true);
+	GetWorld()->GetTimerManager().SetTimer(StorePositionDelayHandle, this, &ATimeTravelController::AddRecallTransformToArray, StorePositionDelay, true);
 }
 
 // Called every frame
@@ -62,9 +63,16 @@ void ATimeTravelController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	RemoveRecallTransforms();
+	Recall(DeltaTime);
+	SetFieldOfView(DeltaTime);
+}
+
+// Removes elements from RecallTransforms if the number of elements is above a certain limit
+void ATimeTravelController::RemoveRecallTransforms()
+{
 	if (CanSetPosition)
 	{
-		// Removing elements from RecallTransforms if the number of elements is above a certain threshold
 		if (RecallTransforms.Num() >= MaxStoredRecallTransforms)
 		{
 			RecallTransforms.RemoveAt(0);
@@ -75,12 +83,38 @@ void ATimeTravelController::Tick(float DeltaTime)
 			}
 		}
 	}
+}
 
-	if (RecallTransforms.Num() > 0 && RecallPressed)
+// Sets the camera component's field of view depending on the situation
+void ATimeTravelController::SetFieldOfView(const float & mDeltaTime)
+{
+
+	if (IsRunningForward && !IsRecallActive && Camera->FieldOfView < ForwardFieldOfView)
 	{
-		// TODO: Player character gets stuck when a position is in the air, needs to jump to continue; re-research and maybe use a function from Kismet/Blueprint?
-		SetActorLocation(FMath::VInterpTo(GetActorTransform().GetLocation(), RecallTransforms[RecallTransformCounter].GetLocation(), DeltaTime, RecallLocationSpeed));
-		SetActorRotation(FMath::RInterpTo(GetActorTransform().GetRotation().Rotator(), RecallTransforms[RecallTransformCounter].GetRotation().Rotator(), DeltaTime, RecallRotationSpeed));
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, mDeltaTime, FieldOfViewSpeed);
+	}
+	else if (IsRecallActive && Camera->FieldOfView > RecallFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, RecallFieldOfView, mDeltaTime, FieldOfViewSpeed);
+	}
+	else if (Camera->FieldOfView != StandardFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, mDeltaTime, FieldOfViewSpeed);
+	}
+}
+
+// Handles the recall ability
+void ATimeTravelController::Recall(const float & mDeltaTime)
+{
+	if (RecallTransforms.Num() > 0 && IsRecallActive)
+	{
+		SetActorLocation(UKismetMathLibrary::TLerp(GetActorTransform(), RecallTransforms[RecallTransformCounter], RecallLocationSpeed * mDeltaTime).GetLocation());
+
+		// Rotation is disabled by default
+		if (EnableRecallRotation)
+		{
+			GetController()->SetControlRotation(UKismetMathLibrary::RLerp(GetActorRotation(), RecallTransforms[RecallTransformCounter].GetRotation().Rotator(), RecallRotationSpeed * mDeltaTime, false));
+		}
 
 		if (UKismetMathLibrary::NearlyEqual_TransformTransform(GetActorTransform(), RecallTransforms[RecallTransformCounter], RecallTolerance, RecallTolerance, RecallTolerance))
 		{
@@ -98,7 +132,7 @@ void ATimeTravelController::Tick(float DeltaTime)
 				}
 
 				CanSetPosition = true;
-				RecallPressed = false;
+				IsRecallActive = false;
 				RecallStopped = false;
 				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
 			}
@@ -110,7 +144,7 @@ void ATimeTravelController::Tick(float DeltaTime)
 			else
 			{
 				CanSetPosition = true;
-				RecallPressed = false;
+				IsRecallActive = false;
 				RecallTransforms.Empty();
 				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
 
@@ -120,20 +154,6 @@ void ATimeTravelController::Tick(float DeltaTime)
 				}
 			}
 		}
-	}
-
-	// Setting the camera component's field of view depending on the situation
-	if (IsRunningForward && Camera->FieldOfView < ForwardFieldOfView)
-	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, DeltaTime, FieldOfViewSpeed);
-	}
-	else if (RecallPressed && Camera->FieldOfView > RecallFieldOfView)
-	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, RecallFieldOfView, DeltaTime, FieldOfViewSpeed);
-	}
-	else if (Camera->FieldOfView != StandardFieldOfView)
-	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, DeltaTime, FieldOfViewSpeed);
 	}
 }
 
@@ -161,7 +181,7 @@ void ATimeTravelController::Jump()
 void ATimeTravelController::MoveForward(float mValue)
 {
 	// Determining whether player character is running forward in order to set the camera component's field of view accordingly
-	mValue > 0 ? IsRunningForward = true : IsRunningForward = false;
+	mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
 
 	AddMovementInput(GetActorForwardVector(), mValue);
 }
@@ -184,17 +204,17 @@ void ATimeTravelController::MoveCameraVertical(float mAmount)
 void ATimeTravelController::Recall()
 {
 	if (RecallTransforms.Num() > 0)
-	{	
+	{
 		// Recall if the cooldown is not active, else abort an active recall
 		if (CanRecall)
 		{
-			RecallPressed = true;
+			IsRecallActive = true;
 			CanRecall = false;
 			CanSetPosition = false;
 
 			RecallTransformCounter = RecallTransforms.Num() - 1;
 		}
-		else if (RecallPressed)
+		else if (IsRecallActive)
 		{
 			RecallStopped = true;
 		}
@@ -213,7 +233,7 @@ void ATimeTravelController::ResetRecallCooldown()
 	CanRecall = true;
 }
 
-void ATimeTravelController::AddRecallTransform()
+void ATimeTravelController::AddRecallTransformToArray()
 {
 	// Only do this while recall is inactive
 	if (CanSetPosition)

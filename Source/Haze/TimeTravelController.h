@@ -9,9 +9,11 @@
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
 
+
 #include "DrawDebugHelpers.h"
 
 #include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
 #include "Kismet/KismetMathLibrary.h"
@@ -94,8 +96,11 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	bool CanRecall;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
+	bool EnableRecallRotation;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
-	bool RecallPressed;
+	bool IsRecallActive;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	bool RecallStopped;
@@ -122,7 +127,13 @@ public:
 	bool IsRunningForward;
 
 private:
-	void AddRecallTransform();
+	void RemoveRecallTransforms();
+
+	void SetFieldOfView(const float & mDeltaTime);
+
+	void Recall(const float & mDeltaTime);
+
+	void AddRecallTransformToArray();
 
 	FTimerHandle StorePositionDelayHandle;
 
