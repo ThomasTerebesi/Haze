@@ -19,10 +19,10 @@ ATimeTravelController::ATimeTravelController()
 	CanRecall = true;
 	IsRecallActive = false;
 	RecallStopped = false;
-	RecallLocationSpeed = 24.0f;
+	RecallLocationSpeed = 32.0f;
 	RecallRotationSpeed = 8.0f;
 	RecallTransformCounter = 0;
-	RecallCooldown = 6.0f;
+	RecallCooldown = 4.0f;
 	RecallTolerance = 128.0f;
 	EnableRecallRotation = false;
 
@@ -30,8 +30,8 @@ ATimeTravelController::ATimeTravelController()
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
 	ForwardFieldOfView = 104.0f;
-	RecallFieldOfView = 80.0f;
-	FieldOfViewSpeed = 6.0f;
+	RecallFieldOfView = 88.0f;
+	FieldOfViewSpeed = 8.0f;
 
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
