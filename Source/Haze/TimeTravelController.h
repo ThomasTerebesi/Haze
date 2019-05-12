@@ -9,6 +9,7 @@
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/BoxComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -38,6 +39,8 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void HandleWallClimb();
+
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -51,6 +54,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	USceneComponent* WallClimbLineTraceEnd;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UBoxComponent* WallRunCollision;
 
 	void Jump();
 

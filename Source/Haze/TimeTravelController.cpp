@@ -45,10 +45,12 @@ ATimeTravelController::ATimeTravelController()
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
 	WallClimbLineTraceEnd = CreateDefaultSubobject<USceneComponent>("WallClimbLineTraceEnd");
+	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
 
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
 	WallClimbLineTraceEnd->SetupAttachment(RootComponent);
+	WallRunCollision->SetupAttachment(RootComponent);
 
 	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
 	SpringArm->TargetArmLength = 0.0f;
@@ -58,6 +60,9 @@ ATimeTravelController::ATimeTravelController()
 
 	WallClimbLineTraceEnd->SetWorldLocation(FVector(80.0f, 0.0f, 0.0f));
 
+	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
+
+	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
 }
 
@@ -79,14 +84,18 @@ void ATimeTravelController::Tick(float DeltaTime)
 
 	RemoveRecallTransforms();
 	HandleRecall(DeltaTime);
-	
+	HandleWallClimb();
+	SetFieldOfView(DeltaTime);
+}
 
+void ATimeTravelController::HandleWallClimb()
+{
 	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
 	{
 		if (WallClimbHitResult.GetActor()->ActorHasTag("Climbable"))
-		{			
+		{
 			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
-			
+
 			if (EnableDebug && EnableWallClimbDebug)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
@@ -107,8 +116,6 @@ void ATimeTravelController::Tick(float DeltaTime)
 	}
 
 	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
-
-	SetFieldOfView(DeltaTime);
 }
 
 // Removes elements from RecallTransforms if the number of elements is above a certain limit
