@@ -10,7 +10,8 @@ ATimeTravelController::ATimeTravelController()
 
 	// "Debug" category setup
 	EnableDebug = true;
-	ShowRecallTransforms = true;
+	EnableRecallDebug = true;
+	EnableWallClimbDebug = true;
 
 	// "Recall" category setup
 	CanSetPosition = true;
@@ -26,6 +27,13 @@ ATimeTravelController::ATimeTravelController()
 	RecallTolerance = 128.0f;
 	EnableRecallRotation = false;
 
+	// "Wall Climb" category setup
+	EnableWallClimb = true;
+	ClimbTime = 0.0f;
+	ClimbTimeMax = 1.2f;
+	ClimbSpeed = 420.0f;
+	IsClimbing = false;
+
 	// "Other" category setup
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
@@ -36,15 +44,19 @@ ATimeTravelController::ATimeTravelController()
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+	WallClimbLineTraceEnd = CreateDefaultSubobject<USceneComponent>("WallClimbLineTraceEnd");
 
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
+	WallClimbLineTraceEnd->SetupAttachment(RootComponent);
 
 	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
 	SpringArm->TargetArmLength = 0.0f;
 	SpringArm->bUsePawnControlRotation = true;
 
 	Camera->FieldOfView = StandardFieldOfView;
+
+	WallClimbLineTraceEnd->SetWorldLocation(FVector(80.0f, 0.0f, 0.0f));
 
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
 }
@@ -56,6 +68,8 @@ void ATimeTravelController::BeginPlay()
 
 	// Adding new elements to RecallTransforms in regular intervals
 	GetWorld()->GetTimerManager().SetTimer(StorePositionDelayHandle, this, &ATimeTravelController::AddRecallTransformToArray, StorePositionDelay, true);
+
+	// Add one transform in the beginning
 }
 
 // Called every frame
@@ -64,7 +78,36 @@ void ATimeTravelController::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	RemoveRecallTransforms();
-	Recall(DeltaTime);
+	HandleRecall(DeltaTime);
+	
+
+	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
+	{
+		if (WallClimbHitResult.GetActor()->ActorHasTag("Climbable"))
+		{			
+			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
+			
+			if (EnableDebug && EnableWallClimbDebug)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
+			}
+
+			if (ClimbTime != 0.0f)
+			{
+				if (ClimbTime <= ClimbTimeMax)
+				{
+					LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+				}
+			}
+		}
+	}
+	else
+	{
+		ClimbTime = 0.0f;
+	}
+
+	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
+
 	SetFieldOfView(DeltaTime);
 }
 
@@ -77,7 +120,7 @@ void ATimeTravelController::RemoveRecallTransforms()
 		{
 			RecallTransforms.RemoveAt(0);
 
-			if (EnableDebug && ShowRecallTransforms)
+			if (EnableDebug && EnableRecallDebug)
 			{
 				UE_LOG(LogTemp, Warning, TEXT("Removed: %s"), *RecallTransforms[0].ToString());
 			}
@@ -104,7 +147,7 @@ void ATimeTravelController::SetFieldOfView(const float & mDeltaTime)
 }
 
 // Handles the recall ability
-void ATimeTravelController::Recall(const float & mDeltaTime)
+void ATimeTravelController::HandleRecall(const float & mDeltaTime)
 {
 	if (RecallTransforms.Num() > 0 && IsRecallActive)
 	{
@@ -123,7 +166,7 @@ void ATimeTravelController::Recall(const float & mDeltaTime)
 			{
 				for (int8 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
 				{
-					if (EnableDebug && ShowRecallTransforms)
+					if (EnableDebug && EnableRecallDebug)
 					{
 						UE_LOG(LogTemp, Error, TEXT("Removed: %s."), *RecallTransforms[i].ToString());
 					}
@@ -148,7 +191,7 @@ void ATimeTravelController::Recall(const float & mDeltaTime)
 				RecallTransforms.Empty();
 				GetWorld()->GetTimerManager().SetTimer(RecallCooldownHandle, this, &ATimeTravelController::ResetRecallCooldown, RecallCooldown, false);
 
-				if (EnableDebug && ShowRecallTransforms)
+				if (EnableDebug && EnableRecallDebug)
 				{
 					UE_LOG(LogTemp, Error, TEXT("Cleared RemoveTransforms."));
 				}
@@ -180,25 +223,37 @@ void ATimeTravelController::Jump()
 
 void ATimeTravelController::MoveForward(float mValue)
 {
-	// Determining whether player character is running forward in order to set the camera component's field of view accordingly
-	mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
+	if (!IsClimbing)
+	{
+		// Determining whether player character is running forward in order to set the camera component's field of view accordingly
+		mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
 
-	AddMovementInput(GetActorForwardVector(), mValue);
+		AddMovementInput(GetActorForwardVector(), mValue);
+	}
 }
 
 void ATimeTravelController::MoveRight(float mValue)
 {
-	AddMovementInput(GetActorRightVector(), mValue);
+	if (!IsClimbing)
+	{
+		AddMovementInput(GetActorRightVector(), mValue);
+	}
 }
 
 void ATimeTravelController::MoveCameraHorizontal(float mAmount)
 {
-	AddControllerYawInput(mAmount);
+	if (!IsClimbing)
+	{
+		AddControllerYawInput(mAmount);
+	}
 }
 
 void ATimeTravelController::MoveCameraVertical(float mAmount)
 {
-	AddControllerPitchInput(mAmount);
+	if (!IsClimbing)
+	{
+		AddControllerPitchInput(mAmount);
+	}
 }
 
 void ATimeTravelController::Recall()
@@ -221,7 +276,7 @@ void ATimeTravelController::Recall()
 	}
 	else
 	{
-		if (EnableDebug && ShowRecallTransforms)
+		if (EnableDebug && EnableRecallDebug)
 		{
 			UE_LOG(LogTemp, Error, TEXT("RecallTransforms is empty."));
 		}
@@ -238,11 +293,19 @@ void ATimeTravelController::AddRecallTransformToArray()
 	// Only do this while recall is inactive
 	if (CanSetPosition)
 	{
-		RecallTransforms.Add(GetActorTransform());
-
-		if (EnableDebug && ShowRecallTransforms)
+		// Only add elements to RecallTransforms if it is empty or if the location has actually changed
+		if (RecallTransforms.Num() == 0)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
+			RecallTransforms.Add(GetActorTransform());
+		}
+		else if (!RecallTransforms.Last().GetLocation().Equals(GetActorTransform().GetLocation()))
+		{
+			RecallTransforms.Add(GetActorTransform());
+
+			if (EnableDebug && EnableRecallDebug)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
+			}
 		}
 	}
 }

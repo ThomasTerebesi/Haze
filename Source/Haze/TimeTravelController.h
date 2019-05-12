@@ -8,7 +8,7 @@
 
 #include "Components/InputComponent.h"
 #include "Components/CapsuleComponent.h"
-
+#include "Components/SceneComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -16,6 +16,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/SpringArmComponent.h"
 
+#include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
 
 #include "TimeTravelController.generated.h"
@@ -40,11 +41,16 @@ public:
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
+
+	// Components and functions
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	USpringArmComponent* SpringArm;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	UCameraComponent* Camera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	USceneComponent* WallClimbLineTraceEnd;
 
 	void Jump();
 
@@ -66,12 +72,19 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void ResetRecallCooldown();
 
+
+	// "Debug" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
 	bool EnableDebug;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
-	bool ShowRecallTransforms;
+	bool EnableRecallDebug;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Debug")
+	bool EnableWallClimbDebug;
+
+
+	// "Recall" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recall")
 	bool CanSetPosition;
 
@@ -111,6 +124,25 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Recall")
 	TArray<FTransform> RecallTransforms;
 
+
+	// "Wall Climb" category
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Climb")
+	bool EnableWallClimb;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Climb")
+	float ClimbTime;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Climb")
+	float ClimbTimeMax;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Wall Climb")
+	float ClimbSpeed;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Climb")
+	bool IsClimbing;
+
+
+	// "Other" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
 	float StandardFieldOfView;
 
@@ -131,11 +163,13 @@ private:
 
 	void SetFieldOfView(const float & mDeltaTime);
 
-	void Recall(const float & mDeltaTime);
+	void HandleRecall(const float & mDeltaTime);
 
 	void AddRecallTransformToArray();
 
 	FTimerHandle StorePositionDelayHandle;
 
 	FTimerHandle RecallCooldownHandle;
+
+	FHitResult WallClimbHitResult;
 };
