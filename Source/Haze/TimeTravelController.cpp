@@ -15,16 +15,16 @@ ATimeTravelController::ATimeTravelController()
 
 	// "Recall" category setup
 	CanSetPosition = true;
-	StorePositionDelay = 0.05f;
-	MaxStoredRecallTransforms = 256;
+	StorePositionDelay = 0.04f;
+	MaxStoredRecallTransforms = 512;
 	CanRecall = true;
 	IsRecallActive = false;
 	RecallStopped = false;
-	RecallLocationSpeed = 32.0f;
+	RecallLocationSpeed = 24.0f;
 	RecallRotationSpeed = 8.0f;
 	RecallTransformCounter = 0;
 	RecallCooldown = 4.0f;
-	RecallTolerance = 128.0f;
+	RecallTolerance = 192.0f;
 	EnableRecallRotation = false;
 
 	// "Wall Climb" category setup
@@ -64,6 +64,8 @@ ATimeTravelController::ATimeTravelController()
 
 	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
+
+	JumpMaxCount = 2;
 }
 
 // Called when the game starts or when spawned
@@ -74,7 +76,7 @@ void ATimeTravelController::BeginPlay()
 	// Adding new elements to RecallTransforms in regular intervals
 	GetWorld()->GetTimerManager().SetTimer(StorePositionDelayHandle, this, &ATimeTravelController::AddRecallTransformToArray, StorePositionDelay, true);
 
-	// Add one transform in the beginning
+	GetCharacterMovement()->SetPlaneConstraintEnabled(true);
 }
 
 // Called every frame
@@ -171,7 +173,7 @@ void ATimeTravelController::HandleRecall(const float & mDeltaTime)
 			// Stop recall and remove only the used elements from RecallTransformsArray
 			if (RecallStopped)
 			{
-				for (int8 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
+				for (int16 i = RecallTransforms.Num() - 1; i >= RecallTransformCounter; i--)
 				{
 					if (EnableDebug && EnableRecallDebug)
 					{
@@ -220,12 +222,18 @@ void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 	// Binding of action mappings
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATimeTravelController::Jump);
+	// PlayerInputComponent->BindAction("Jump", IE_Released, this, &ATimeTravelController::StopJump);
 	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ATimeTravelController::Recall);
 }
 
 void ATimeTravelController::Jump()
 {
 	Super::Jump();
+}
+
+void ATimeTravelController::StopJump()
+{
+	Super::StopJumping();
 }
 
 void ATimeTravelController::MoveForward(float mValue)

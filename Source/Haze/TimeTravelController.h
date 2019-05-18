@@ -39,8 +39,6 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	void HandleWallClimb();
-
 	// Called to bind functionality to input
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 
@@ -59,6 +57,8 @@ public:
 	UBoxComponent* WallRunCollision;
 
 	void Jump();
+
+	void StopJump();
 
 	UFUNCTION(BlueprintCallable)
 	void MoveForward(float mValue);
@@ -147,8 +147,15 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Climb")
 	bool IsClimbing;
 
+	
+	// "Wall Run" category
+
+
 
 	// "Other" category
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	int32 JumpMax;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
 	float StandardFieldOfView;
 
@@ -170,6 +177,8 @@ private:
 	void SetFieldOfView(const float & mDeltaTime);
 
 	void HandleRecall(const float & mDeltaTime);
+
+	void HandleWallClimb();
 
 	void AddRecallTransformToArray();
 
