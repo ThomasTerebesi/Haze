@@ -35,6 +35,12 @@ ATimeTravelController::ATimeTravelController()
 	ClimbSpeed = 420.0f;
 	IsClimbing = false;
 
+	// "Wall Run" category setup
+
+
+	// "Object Pick Up" category setup
+	IsHoldingObject = false;
+
 	// "Other" category setup
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
@@ -47,11 +53,14 @@ ATimeTravelController::ATimeTravelController()
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
 	WallClimbLineTraceEnd = CreateDefaultSubobject<USceneComponent>("WallClimbLineTraceEnd");
 	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
+	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
+	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
 
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
 	WallClimbLineTraceEnd->SetupAttachment(RootComponent);
 	WallRunCollision->SetupAttachment(RootComponent);
+	ObjectPickUpLineTraceEnd->SetupAttachment(Camera);
 
 	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
 	SpringArm->TargetArmLength = 0.0f;
@@ -60,6 +69,8 @@ ATimeTravelController::ATimeTravelController()
 	Camera->FieldOfView = StandardFieldOfView;
 
 	WallClimbLineTraceEnd->SetWorldLocation(FVector(80.0f, 0.0f, 0.0f));
+
+	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(256.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
 
@@ -88,7 +99,28 @@ void ATimeTravelController::Tick(float DeltaTime)
 	RemoveRecallTransforms();
 	HandleRecall(DeltaTime);
 	HandleWallClimb();
+	UpdateHeldObject();
 	SetFieldOfView(DeltaTime);
+}
+
+void ATimeTravelController::UpdateHeldObject()
+{
+	if (IsHoldingObject)
+	{
+		ObjectPickUpPhysicsHandle->SetTargetLocation(ObjectPickUpLineTraceEnd->GetComponentLocation());
+	}
+}
+
+void ATimeTravelController::HandleObjectPickUpInput()
+{
+	if (IsHoldingObject)
+	{
+		DropObject();
+	}
+	else
+	{
+		PickUpObject();
+	}
 }
 
 void ATimeTravelController::HandleWallClimb()
@@ -223,8 +255,8 @@ void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 	// Binding of action mappings
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATimeTravelController::Jump);
-	// PlayerInputComponent->BindAction("Jump", IE_Released, this, &ATimeTravelController::StopJump);
 	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ATimeTravelController::Recall);
+	PlayerInputComponent->BindAction("ObjectPickUp", IE_Pressed, this, &ATimeTravelController::HandleObjectPickUpInput);
 }
 
 void ATimeTravelController::Jump()
@@ -302,6 +334,30 @@ void ATimeTravelController::Recall()
 void ATimeTravelController::ResetRecallCooldown()
 {
 	CanRecall = true;
+}
+
+void ATimeTravelController::PickUpObject()
+{
+	if (GetWorld()->LineTraceSingleByChannel(ObjectPickUpHitResult, Camera->GetComponentLocation(), ObjectPickUpLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
+	{
+		if (ObjectPickUpHitResult.GetComponent()->IsSimulatingPhysics())
+		{
+			ObjectPickUpPhysicsHandle->GrabComponentAtLocationWithRotation(
+				ObjectPickUpHitResult.GetComponent(),
+				NAME_None,
+				ObjectPickUpHitResult.GetComponent()->GetComponentLocation(),
+				ObjectPickUpHitResult.GetComponent()->GetComponentRotation()
+			);
+
+			IsHoldingObject = true;
+		}
+	}
+}
+
+void ATimeTravelController::DropObject()
+{
+	ObjectPickUpPhysicsHandle->ReleaseComponent();
+	IsHoldingObject = false;
 }
 
 void ATimeTravelController::AddRecallTransformToArray()

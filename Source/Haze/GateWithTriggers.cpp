@@ -16,6 +16,7 @@ AGateWithTriggers::AGateWithTriggers()
 	AllGateTriggersActiveDelay = 0.25f;
 	GateOpenSpeed = 8.0f;
 	GateCloseSpeed = 8.0f;
+	ActivatesWithAnyTrigger = false;
 
 	DebugEnabled = true;
 
@@ -76,26 +77,31 @@ bool AGateWithTriggers::RegisterTrigger(AGateTrigger* mTrigger)
 
 void AGateWithTriggers::AllGateTriggersAreActive()
 {
-	for (AGateTrigger* CurrentTrigger : GateTriggerArray)
+	if (!ActivatesWithAnyTrigger)
 	{
-		if (!CurrentTrigger->IsActivated)
+		for (AGateTrigger* CurrentTrigger : GateTriggerArray)
 		{
-			IsActivated = false;
-		
-			if (DebugEnabled)
+			if (!CurrentTrigger->IsActivated)
 			{
-				UE_LOG(LogTemp, Error, TEXT("%s is inactive!"), *GetName());
+				IsActivated = false;
+				return;
 			}
-
-			return;
 		}
+
+		IsActivated = true;
 	}
-
-	IsActivated = true;
-
-	if (DebugEnabled)
+	else
 	{
-		UE_LOG(LogTemp, Error, TEXT("%s is activated!"), *GetName());
+		for (AGateTrigger* CurrentTrigger : GateTriggerArray)
+		{
+			if (CurrentTrigger->IsActivated)
+			{
+				IsActivated = true;
+				return;
+			}
+		}
+
+		IsActivated = false;
 	}
 }
 

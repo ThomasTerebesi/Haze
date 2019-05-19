@@ -6,10 +6,10 @@
 
 #include "Camera/CameraComponent.h"
 
-#include "Components/InputComponent.h"
-#include "Components/CapsuleComponent.h"
-#include "Components/SceneComponent.h"
 #include "Components/BoxComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/InputComponent.h"
+#include "Components/SceneComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -19,6 +19,8 @@
 
 #include "Kismet/GameplayStatics.h"
 #include "Kismet/KismetMathLibrary.h"
+
+#include "PhysicsEngine/PhysicsHandleComponent.h"
 
 #include "TimeTravelController.generated.h"
 
@@ -57,6 +59,12 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UBoxComponent* WallRunCollision;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	USceneComponent* ObjectPickUpLineTraceEnd;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPhysicsHandleComponent* ObjectPickUpPhysicsHandle;
+
 	void Jump();
 
 	void StopJump();
@@ -78,6 +86,12 @@ public:
 
 	UFUNCTION(BlueprintCallable)
 	void ResetRecallCooldown();
+
+	UFUNCTION(BlueprintCallable)
+	void PickUpObject();
+
+	UFUNCTION(BlueprintCallable)
+	void DropObject();
 
 
 	// "Debug" category
@@ -152,6 +166,10 @@ public:
 	// "Wall Run" category
 
 
+	// "Object Pick Up" category
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Object Pick Up")
+	bool IsHoldingObject;
+
 
 	// "Other" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
@@ -181,6 +199,10 @@ private:
 
 	void HandleWallClimb();
 
+	void UpdateHeldObject();
+
+	void HandleObjectPickUpInput();
+
 	void AddRecallTransformToArray();
 
 	FTimerHandle StorePositionDelayHandle;
@@ -188,4 +210,6 @@ private:
 	FTimerHandle RecallCooldownHandle;
 
 	FHitResult WallClimbHitResult;
+
+	FHitResult ObjectPickUpHitResult;
 };

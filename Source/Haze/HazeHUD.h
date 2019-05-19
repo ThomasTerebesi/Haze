@@ -3,14 +3,14 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/GameModeBase.h"
-#include "HazeGameModeBase.generated.h"
+#include "GameFramework/HUD.h"
+#include "HazeHUD.generated.h"
 
 /**
  * 
  */
 UCLASS()
-class HAZE_API AHazeGameModeBase : public AGameModeBase
+class HAZE_API AHazeHUD : public AHUD
 {
 	GENERATED_BODY()
 	

@@ -36,8 +36,6 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	TArray<AGateTrigger*> GateTriggerArray;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	bool DebugEnabled;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	bool IsActivated;
@@ -62,6 +60,12 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float AllGateTriggersActiveDelay;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool ActivatesWithAnyTrigger;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool DebugEnabled;
 
 	UFUNCTION(BlueprintCallable)
 	bool RegisterTrigger(AGateTrigger* mTrigger);
