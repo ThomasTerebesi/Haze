@@ -45,9 +45,30 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 NumberOfTriggers;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector InitialLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector CurrentLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FVector OpenEndLocation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float GateOpenSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float GateCloseSpeed;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float AllGateTriggersActiveDelay;
+
 	UFUNCTION(BlueprintCallable)
 	bool RegisterTrigger(AGateTrigger* mTrigger);
 
 	UFUNCTION(BlueprintCallable)
-	bool AllGateTriggersAreActive();
+	void AllGateTriggersAreActive();
+
+private:
+	FTimerHandle AllGateTriggersActiveDelayHandle;
 };

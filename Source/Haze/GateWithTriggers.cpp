@@ -12,7 +12,14 @@ AGateWithTriggers::AGateWithTriggers()
 
 	RootComponent = Mesh;
 
+	IsActivated = false;
+	AllGateTriggersActiveDelay = 0.25f;
+	GateOpenSpeed = 8.0f;
+	GateCloseSpeed = 8.0f;
+
 	DebugEnabled = true;
+
+	OpenEndLocation = FVector(0.0f, 0.0f, 128.0f);
 }
 
 // Called when the game starts or when spawned
@@ -20,6 +27,9 @@ void AGateWithTriggers::BeginPlay()
 {
 	Super::BeginPlay();
 
+	InitialLocation = GetActorLocation();
+
+	GetWorld()->GetTimerManager().SetTimer(AllGateTriggersActiveDelayHandle, this, &AGateWithTriggers::AllGateTriggersAreActive, AllGateTriggersActiveDelay, true);
 }
 
 // Called every frame
@@ -27,9 +37,15 @@ void AGateWithTriggers::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	if (DebugEnabled && AllGateTriggersAreActive())
+	CurrentLocation = GetActorLocation();
+
+	if (IsActivated && !CurrentLocation.Equals(InitialLocation + OpenEndLocation))
 	{
-		UE_LOG(LogTemp, Warning, TEXT("%s is activated!"), *GetName());
+		SetActorLocation(FMath::VInterpTo(CurrentLocation, InitialLocation + OpenEndLocation, DeltaTime, GateOpenSpeed));
+	}
+	else if (!IsActivated && !CurrentLocation.Equals(InitialLocation))
+	{
+		SetActorLocation(FMath::VInterpTo(CurrentLocation, InitialLocation, DeltaTime, GateCloseSpeed));
 	}
 }
 
@@ -58,16 +74,28 @@ bool AGateWithTriggers::RegisterTrigger(AGateTrigger* mTrigger)
 	}
 }
 
-bool AGateWithTriggers::AllGateTriggersAreActive()
+void AGateWithTriggers::AllGateTriggersAreActive()
 {
 	for (AGateTrigger* CurrentTrigger : GateTriggerArray)
 	{
 		if (!CurrentTrigger->IsActivated)
 		{
-			return false;
+			IsActivated = false;
+		
+			if (DebugEnabled)
+			{
+				UE_LOG(LogTemp, Error, TEXT("%s is inactive!"), *GetName());
+			}
+
+			return;
 		}
 	}
 
-	return true;
+	IsActivated = true;
+
+	if (DebugEnabled)
+	{
+		UE_LOG(LogTemp, Error, TEXT("%s is activated!"), *GetName());
+	}
 }
 
