@@ -2,6 +2,7 @@
 
 #include "TimeTravelController.h"
 
+
 // Sets default values
 ATimeTravelController::ATimeTravelController()
 {
@@ -16,7 +17,7 @@ ATimeTravelController::ATimeTravelController()
 	// "Recall" category setup
 	CanSetPosition = true;
 	StorePositionDelay = 0.04f;
-	MaxStoredRecallTransforms = 512;
+	MaxStoredRecallTransforms = 1024;
 	CanRecall = true;
 	IsRecallActive = false;
 	RecallStopped = false;

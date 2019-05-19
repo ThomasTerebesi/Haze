@@ -8,9 +8,10 @@
 
 #include "GameFramework/Actor.h"
 
-#include "Trigger.h"
+#include "GateTrigger.h"
 
 #include "GateWithTriggers.generated.h"
+
 
 UCLASS()
 class HAZE_API AGateWithTriggers : public AActor
@@ -29,15 +30,24 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
 	UStaticMeshComponent* Mesh;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	TArray<UTrigger *> TriggerArray;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite)
+	TArray<AGateTrigger*> GateTriggerArray;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool DebugEnabled;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	bool IsActivated;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	int32 NumberOfTriggers;
+
+	UFUNCTION(BlueprintCallable)
+	bool RegisterTrigger(AGateTrigger* mTrigger);
+
+	UFUNCTION(BlueprintCallable)
+	bool AllGateTriggersAreActive();
 };

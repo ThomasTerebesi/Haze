@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "AccessKey.generated.h"
 
+
 UCLASS()
 class HAZE_API AAccessKey : public AActor
 {

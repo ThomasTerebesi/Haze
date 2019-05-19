@@ -22,6 +22,7 @@
 
 #include "TimeTravelController.generated.h"
 
+
 UCLASS()
 class HAZE_API ATimeTravelController : public ACharacter
 {
@@ -44,16 +45,16 @@ public:
 
 
 	// Components and functions
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USpringArmComponent* SpringArm;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UCameraComponent* Camera;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* WallClimbLineTraceEnd;
 
-	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UBoxComponent* WallRunCollision;
 
 	void Jump();

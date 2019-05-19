@@ -10,6 +10,8 @@ AGateWithTriggers::AGateWithTriggers()
 
 	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("StaticMesh");
 
+	RootComponent = Mesh;
+
 	DebugEnabled = true;
 }
 
@@ -17,13 +19,7 @@ AGateWithTriggers::AGateWithTriggers()
 void AGateWithTriggers::BeginPlay()
 {
 	Super::BeginPlay();
-	
-	NumberOfTriggers = TriggerArray.Num();
 
-	if (DebugEnabled && NumberOfTriggers == 0)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s has no triggers attached to it!"), *GetName());
-	}
 }
 
 // Called every frame
@@ -31,5 +27,47 @@ void AGateWithTriggers::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	if (DebugEnabled && AllGateTriggersAreActive())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s is activated!"), *GetName());
+	}
+}
+
+bool AGateWithTriggers::RegisterTrigger(AGateTrigger* mTrigger)
+{
+	if (mTrigger->IsValidLowLevelFast())
+	{
+		GateTriggerArray.Add(mTrigger);
+		NumberOfTriggers = GateTriggerArray.Num();
+
+		if (DebugEnabled)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Successfully registered %s with gate."), *mTrigger->GetName());
+		}
+
+		return true;
+	}
+	else
+	{
+		if (DebugEnabled)
+		{
+			UE_LOG(LogTemp, Error, TEXT("Could not register %s with gate."), *mTrigger->GetName());
+		}
+
+		return false;
+	}
+}
+
+bool AGateWithTriggers::AllGateTriggersAreActive()
+{
+	for (AGateTrigger* CurrentTrigger : GateTriggerArray)
+	{
+		if (!CurrentTrigger->IsActivated)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
