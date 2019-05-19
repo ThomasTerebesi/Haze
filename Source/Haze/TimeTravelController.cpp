@@ -70,7 +70,7 @@ ATimeTravelController::ATimeTravelController()
 
 	WallClimbLineTraceEnd->SetWorldLocation(FVector(80.0f, 0.0f, 0.0f));
 
-	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(256.0f, 0.0f, 0.0f));
+	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(320.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
 

@@ -3,7 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+
+#include "Components/StaticMeshComponent.h"
+
 #include "GameFramework/Actor.h"
+
 #include "AccessKey.generated.h"
 
 
@@ -24,4 +28,12 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UStaticMeshComponent* Mesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UMaterial* HighlightMaterial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool DroppedOnRecall;
 };

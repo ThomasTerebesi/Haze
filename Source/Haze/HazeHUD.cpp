@@ -3,3 +3,10 @@
 
 #include "HazeHUD.h"
 
+//void AHazeHUD::BeginPlay()
+//{
+//}
+//
+//void AHazeHUD::DrawHUD()
+//{
+//}
