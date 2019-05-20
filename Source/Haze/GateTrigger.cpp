@@ -21,6 +21,7 @@ AGateTrigger::AGateTrigger()
 
 	TriggeredByObjectOverlap = false;
 	TriggeredByAccessKeyOverlap = false;
+	MakesGateStayOpen = false;
 	IsActivated = false;
 
 	DebugEnabled = true;
@@ -77,6 +78,11 @@ void AGateTrigger::OnOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor *
 		{
 			UE_LOG(LogTemp, Warning, TEXT("%s successfully triggered %s."), *GetName(), *OtherActor->GetName());
 		}
+	}
+
+	if (MakesGateStayOpen)
+	{
+		AssignedGate->GateStaysOpen = true;
 	}
 }
 

@@ -17,6 +17,7 @@ AGateWithTriggers::AGateWithTriggers()
 	GateOpenSpeed = 8.0f;
 	GateCloseSpeed = 8.0f;
 	ActivatesWithAnyTrigger = false;
+	GateStaysOpen = false;
 
 	DebugEnabled = true;
 
@@ -44,7 +45,7 @@ void AGateWithTriggers::Tick(float DeltaTime)
 	{
 		SetActorLocation(FMath::VInterpTo(CurrentLocation, InitialLocation + OpenEndLocation, DeltaTime, GateOpenSpeed));
 	}
-	else if (!IsActivated && !CurrentLocation.Equals(InitialLocation))
+	else if (!GateStaysOpen && !IsActivated && !CurrentLocation.Equals(InitialLocation))
 	{
 		SetActorLocation(FMath::VInterpTo(CurrentLocation, InitialLocation, DeltaTime, GateCloseSpeed));
 	}

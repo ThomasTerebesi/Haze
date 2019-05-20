@@ -65,6 +65,9 @@ public:
 	bool ActivatesWithAnyTrigger;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	bool GateStaysOpen;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	bool DebugEnabled;
 
 	UFUNCTION(BlueprintCallable)

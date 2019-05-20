@@ -49,6 +49,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
 	bool TriggeredByAccessKeyOverlap;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
+	bool MakesGateStayOpen;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "GateTrigger")
 	bool IsActivated;
 
