@@ -193,9 +193,23 @@ void ATimeTravelController::HandleRecall(const float & mDeltaTime)
 {
 	if (RecallTransforms.Num() > 0 && IsRecallActive)
 	{
+		// Dropping an object if it cannot be held during recall
+		if (IsHoldingObject)
+		{
+			if (ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner()->IsA(AAccessKey::StaticClass()))
+			{
+				AAccessKey* HeldKey = Cast<AAccessKey>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
+
+				if (HeldKey->DroppedOnRecall)
+				{
+					DropObject();
+				}
+			}
+		}
+
 		SetActorLocation(UKismetMathLibrary::TLerp(GetActorTransform(), RecallTransforms[RecallTransformCounter], RecallLocationSpeed * mDeltaTime).GetLocation());
 
-		// Rotation is disabled by default
+		// Rotation is disabled by default for now
 		if (EnableRecallRotation)
 		{
 			GetController()->SetControlRotation(UKismetMathLibrary::RLerp(GetActorRotation(), RecallTransforms[RecallTransformCounter].GetRotation().Rotator(), RecallRotationSpeed * mDeltaTime, false));

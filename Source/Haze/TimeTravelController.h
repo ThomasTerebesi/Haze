@@ -4,6 +4,8 @@
 
 #include "CoreMinimal.h"
 
+#include "AccessKey.h"
+
 #include "Camera/CameraComponent.h"
 
 #include "Components/BoxComponent.h"
