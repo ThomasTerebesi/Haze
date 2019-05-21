@@ -12,6 +12,7 @@
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
 #include "Components/SceneComponent.h"
+#include "Components/TimelineComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -171,6 +172,30 @@ public:
 	UFUNCTION(BlueprintCallable)
 	void OnCharacterLanded(const FHitResult & mHit);
 
+	UFUNCTION(BlueprintCallable)
+	void OnWallRunCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+
+	UFUNCTION(BlueprintCallable)
+	void WallRunTimelineFloatTrack(float mValue);
+
+	UFUNCTION(BlueprintCallable)
+	void OnWallrunTimelineFinished();
+
+	FOnTimelineFloat InterpolateFunction{};	// Declare a delegate function to be binded with the WallRunTimelineFloatTrack function
+
+	FOnTimelineEvent TimelineFinishedDelegate{}; // Declare a delegate function to be binded with the OnWallrunTimelineFinished function
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
+	FVector WallRunDirection;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
+	bool IsWallRunning;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	UTimelineComponent* WallRunTimeline;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Wall Run")
+	class UCurveFloat * WallRunCurve;
 
 
 	// "Object Pick Up" category
@@ -181,6 +206,9 @@ public:
 	// "Other" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	int32 MaxJumps;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	float JumpLaunchVelocity;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Other")
 	int32 JumpCount;

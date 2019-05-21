@@ -36,19 +36,21 @@ ATimeTravelController::ATimeTravelController()
 	IsClimbing = false;
 
 	// "Wall Run" category setup
-	
+	WallRunDirection = FVector(0.0f);
+	IsWallRunning = false;
 
 	// "Object Pick Up" category setup
 	IsHoldingObject = false;
 
 	// "Other" category setup
+	MaxJumps = 2;
+	JumpCount = 0;
+	JumpLaunchVelocity = 420.0f;
 	IsRunningForward = false;
 	StandardFieldOfView = 100.0f;
 	ForwardFieldOfView = 104.0f;
 	RecallFieldOfView = 88.0f;
 	FieldOfViewSpeed = 8.0f;
-	MaxJumps = 2;
-	JumpCount = 0;
 
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
@@ -57,6 +59,7 @@ ATimeTravelController::ATimeTravelController()
 	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
 	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
 	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
+	WallRunTimeline = CreateDefaultSubobject<UTimelineComponent>("WallRunTimeline");
 
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
@@ -75,6 +78,7 @@ ATimeTravelController::ATimeTravelController()
 	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(320.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
+	WallRunCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollision);
 
 	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
@@ -157,8 +161,28 @@ void ATimeTravelController::HandleWallClimb()
 
 void ATimeTravelController::OnCharacterLanded(const FHitResult & mHit)
 {
-	UE_LOG(LogTemp, Warning, TEXT("ME HAS LANDED."));
 	JumpCount = 0;
+}
+
+void ATimeTravelController::OnWallRunCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+{
+	JumpCount = 0;
+	WallRunDirection = Camera->GetForwardVector();
+
+	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
+	{
+		IsWallRunning = true;
+	}
+}
+
+void ATimeTravelController::WallRunTimelineFloatTrack(float mValue)
+{
+	// TODO
+}
+
+void ATimeTravelController::OnWallrunTimelineFinished()
+{
+	// TODO
 }
 
 // Removes elements from RecallTransforms if the number of elements is above a certain limit
@@ -286,7 +310,7 @@ void ATimeTravelController::Jump()
 {
 	if (JumpCount < 2)
 	{
-		LaunchCharacter(FVector(0.0f, 0.0f, 420.0f), false, true);
+		LaunchCharacter(FVector(0.0f, 0.0f, JumpLaunchVelocity), false, true);
 		JumpCount++;
 	}
 }
