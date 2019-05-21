@@ -36,7 +36,7 @@ ATimeTravelController::ATimeTravelController()
 	IsClimbing = false;
 
 	// "Wall Run" category setup
-
+	
 
 	// "Object Pick Up" category setup
 	IsHoldingObject = false;
@@ -47,6 +47,8 @@ ATimeTravelController::ATimeTravelController()
 	ForwardFieldOfView = 104.0f;
 	RecallFieldOfView = 88.0f;
 	FieldOfViewSpeed = 8.0f;
+	MaxJumps = 2;
+	JumpCount = 0;
 
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
@@ -77,7 +79,7 @@ ATimeTravelController::ATimeTravelController()
 	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
 
-	JumpMaxCount = 2;
+	LandedDelegate.AddDynamic(this, &ATimeTravelController::OnCharacterLanded);
 }
 
 // Called when the game starts or when spawned
@@ -151,6 +153,12 @@ void ATimeTravelController::HandleWallClimb()
 	}
 
 	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
+}
+
+void ATimeTravelController::OnCharacterLanded(const FHitResult & mHit)
+{
+	UE_LOG(LogTemp, Warning, TEXT("ME HAS LANDED."));
+	JumpCount = 0;
 }
 
 // Removes elements from RecallTransforms if the number of elements is above a certain limit
@@ -269,13 +277,18 @@ void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 	// Binding of action mappings
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATimeTravelController::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ATimeTravelController::StopJump);
 	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ATimeTravelController::Recall);
 	PlayerInputComponent->BindAction("ObjectPickUp", IE_Pressed, this, &ATimeTravelController::HandleObjectPickUpInput);
 }
 
 void ATimeTravelController::Jump()
 {
-	Super::Jump();
+	if (JumpCount < 2)
+	{
+		LaunchCharacter(FVector(0.0f, 0.0f, 420.0f), false, true);
+		JumpCount++;
+	}
 }
 
 void ATimeTravelController::StopJump()

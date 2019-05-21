@@ -26,7 +26,6 @@
 
 #include "TimeTravelController.generated.h"
 
-
 UCLASS()
 class HAZE_API ATimeTravelController : public ACharacter
 {
@@ -166,6 +165,12 @@ public:
 
 	
 	// "Wall Run" category
+	UPROPERTY(BlueprintAssignable, Category = "Wall Run")
+	FLandedSignature OnLandedDelegate;
+
+	UFUNCTION(BlueprintCallable)
+	void OnCharacterLanded(const FHitResult & mHit);
+
 
 
 	// "Object Pick Up" category
@@ -175,7 +180,10 @@ public:
 
 	// "Other" category
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	int32 JumpMax;
+	int32 MaxJumps;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Other")
+	int32 JumpCount;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Other")
 	float StandardFieldOfView;
