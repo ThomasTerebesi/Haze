@@ -13,9 +13,7 @@
 
 #include "GateTrigger.generated.h"
 
-
 class AGateWithTriggers;
-
 
 UCLASS()
 class HAZE_API AGateTrigger : public AActor

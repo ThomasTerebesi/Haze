@@ -15,7 +15,7 @@ AAccessKey::AAccessKey()
 	DroppedOnRecall = false;
 
 	Mesh->SetSimulatePhysics(true);
-	Mesh->SetMassOverrideInKg(NAME_None, 200.0f, true);
+	// Mesh->SetMassOverrideInKg(NAME_None, 200.0f, true);
 }
 
 // Called when the game starts or when spawned
