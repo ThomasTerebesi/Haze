@@ -166,36 +166,23 @@ public:
 
 	
 	// "Wall Run" category
-	UPROPERTY(BlueprintAssignable, Category = "Wall Run")
-	FLandedSignature OnLandedDelegate;
-
 	UFUNCTION(BlueprintCallable)
 	void OnCharacterLanded(const FHitResult & mHit);
 
 	UFUNCTION(BlueprintCallable)
-	void OnWallRunCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
+	void OnWallRunCollisionBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 	UFUNCTION(BlueprintCallable)
-	void WallRunTimelineFloatTrack(float mValue);
+	void OnWallRunCollisionEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex);
 
 	UFUNCTION(BlueprintCallable)
-	void OnWallrunTimelineFinished();
-
-	FOnTimelineFloat InterpolateFunction{};	// Declare a delegate function to be binded with the WallRunTimelineFloatTrack function
-
-	FOnTimelineEvent TimelineFinishedDelegate{}; // Declare a delegate function to be binded with the OnWallrunTimelineFinished function
+	void WallRunUpdate();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
 	FVector WallRunDirection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
 	bool IsWallRunning;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	UTimelineComponent* WallRunTimeline;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Wall Run")
-	class UCurveFloat * WallRunCurve;
 
 
 	// "Object Pick Up" category
@@ -233,15 +220,17 @@ private:
 
 	void SetFieldOfView(const float & mDeltaTime);
 
-	void HandleRecall(const float & mDeltaTime);
+	void RecallUpdate(const float & mDeltaTime);
 
-	void HandleWallClimb();
+	void WallClimbUpdate();
 
-	void UpdateHeldObject();
+	void ObjectPickUpUpdate();
 
 	void HandleObjectPickUpInput();
 
 	void AddRecallTransformToArray();
+
+	void WallRunEndReset();
 
 	FTimerHandle StorePositionDelayHandle;
 

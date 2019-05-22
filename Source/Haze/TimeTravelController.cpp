@@ -55,16 +55,18 @@ ATimeTravelController::ATimeTravelController()
 	// Component setup
 	SpringArm = CreateDefaultSubobject<USpringArmComponent>("SpringArm");
 	Camera = CreateDefaultSubobject<UCameraComponent>("Camera");
+
 	WallClimbLineTraceEnd = CreateDefaultSubobject<USceneComponent>("WallClimbLineTraceEnd");
+
 	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
+
 	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
 	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
-	WallRunTimeline = CreateDefaultSubobject<UTimelineComponent>("WallRunTimeline");
 
 	SpringArm->SetupAttachment(RootComponent);
 	Camera->SetupAttachment(SpringArm);
 	WallClimbLineTraceEnd->SetupAttachment(RootComponent);
-	WallRunCollision->SetupAttachment(RootComponent);
+	// WallRunCollision->SetupAttachment(RootComponent);
 	ObjectPickUpLineTraceEnd->SetupAttachment(Camera);
 
 	SpringArm->SetWorldLocation(FVector(0.0f, 0.0f, 48.0f));
@@ -78,7 +80,8 @@ ATimeTravelController::ATimeTravelController()
 	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(320.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
-	WallRunCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollision);
+	WallRunCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollisionBegin);
+	WallRunCollision->OnComponentEndOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollisionEnd);
 
 	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
@@ -102,61 +105,43 @@ void ATimeTravelController::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	RemoveRecallTransforms();
-	HandleRecall(DeltaTime);
-	HandleWallClimb();
-	UpdateHeldObject();
+	RecallUpdate(DeltaTime);
+	WallClimbUpdate();
+	WallRunUpdate();
+	ObjectPickUpUpdate();
 	SetFieldOfView(DeltaTime);
 }
 
-void ATimeTravelController::UpdateHeldObject()
+// Called to bind functionality to input
+void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
-	if (IsHoldingObject)
+	Super::SetupPlayerInputComponent(PlayerInputComponent);
+
+	// Binding of axis mappings
+	PlayerInputComponent->BindAxis("MoveForward", this, &ATimeTravelController::MoveForward);
+	PlayerInputComponent->BindAxis("MoveRight", this, &ATimeTravelController::MoveRight);
+	PlayerInputComponent->BindAxis("CameraHorizontal", this, &ATimeTravelController::MoveCameraHorizontal);
+	PlayerInputComponent->BindAxis("CameraVertical", this, &ATimeTravelController::MoveCameraVertical);
+
+	// Binding of action mappings
+	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATimeTravelController::Jump);
+	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ATimeTravelController::StopJump);
+	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ATimeTravelController::Recall);
+	PlayerInputComponent->BindAction("ObjectPickUp", IE_Pressed, this, &ATimeTravelController::HandleObjectPickUpInput);
+}
+
+void ATimeTravelController::Jump()
+{
+	if (JumpCount < 2)
 	{
-		ObjectPickUpPhysicsHandle->SetTargetLocation(ObjectPickUpLineTraceEnd->GetComponentLocation());
+		LaunchCharacter(FVector(0.0f, 0.0f, JumpLaunchVelocity), false, true);
+		JumpCount++;
 	}
 }
 
-void ATimeTravelController::HandleObjectPickUpInput()
+void ATimeTravelController::StopJump()
 {
-	if (IsHoldingObject)
-	{
-		DropObject();
-	}
-	else
-	{
-		PickUpObject();
-	}
-}
-
-void ATimeTravelController::HandleWallClimb()
-{
-	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
-	{
-		if (WallClimbHitResult.GetActor()->ActorHasTag("Climbable"))
-		{
-			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
-
-			if (EnableDebug && EnableWallClimbDebug)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
-			}
-
-			if (ClimbTime != 0.0f)
-			{
-				if (ClimbTime <= ClimbTimeMax)
-				{
-					LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
-				}
-			}
-		}
-	}
-	else
-	{
-		ClimbTime = 0.0f;
-	}
-
-	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
+	Super::StopJumping();
 }
 
 void ATimeTravelController::OnCharacterLanded(const FHitResult & mHit)
@@ -164,65 +149,46 @@ void ATimeTravelController::OnCharacterLanded(const FHitResult & mHit)
 	JumpCount = 0;
 }
 
-void ATimeTravelController::OnWallRunCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
+void ATimeTravelController::MoveForward(float mValue)
 {
-	JumpCount = 0;
-	WallRunDirection = Camera->GetForwardVector();
-
-	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
+	if (!IsClimbing && !IsWallRunning)
 	{
-		IsWallRunning = true;
+		// Determining whether player character is running forward in order to set the camera component's field of view accordingly
+		mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
+
+		AddMovementInput(GetActorForwardVector(), mValue);
 	}
 }
 
-void ATimeTravelController::WallRunTimelineFloatTrack(float mValue)
+void ATimeTravelController::MoveRight(float mValue)
 {
-	// TODO
-}
-
-void ATimeTravelController::OnWallrunTimelineFinished()
-{
-	// TODO
-}
-
-// Removes elements from RecallTransforms if the number of elements is above a certain limit
-void ATimeTravelController::RemoveRecallTransforms()
-{
-	if (CanSetPosition)
+	if (!IsClimbing && !IsWallRunning)
 	{
-		if (RecallTransforms.Num() >= MaxStoredRecallTransforms)
-		{
-			RecallTransforms.RemoveAt(0);
-
-			if (EnableDebug && EnableRecallDebug)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Removed: %s"), *RecallTransforms[0].ToString());
-			}
-		}
+		AddMovementInput(GetActorRightVector(), mValue);
 	}
 }
 
-// Sets the camera component's field of view depending on the situation
-void ATimeTravelController::SetFieldOfView(const float & mDeltaTime)
+void ATimeTravelController::MoveCameraHorizontal(float mAmount)
 {
+	if (!IsClimbing)
+	{
+		AddControllerYawInput(mAmount);
+	}
+}
 
-	if (IsRunningForward && !IsRecallActive && Camera->FieldOfView < ForwardFieldOfView)
+void ATimeTravelController::MoveCameraVertical(float mAmount)
+{
+	if (!IsClimbing)
 	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, mDeltaTime, FieldOfViewSpeed);
-	}
-	else if (IsRecallActive && Camera->FieldOfView > RecallFieldOfView)
-	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, RecallFieldOfView, mDeltaTime, FieldOfViewSpeed);
-	}
-	else if (Camera->FieldOfView != StandardFieldOfView)
-	{
-		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, mDeltaTime, FieldOfViewSpeed);
+		AddControllerPitchInput(mAmount);
 	}
 }
 
 // Handles the recall ability
-void ATimeTravelController::HandleRecall(const float & mDeltaTime)
+void ATimeTravelController::RecallUpdate(const float & mDeltaTime)
 {
+	RemoveRecallTransforms();
+
 	if (RecallTransforms.Num() > 0 && IsRecallActive)
 	{
 		// Dropping an object if it cannot be held during recall
@@ -288,73 +254,6 @@ void ATimeTravelController::HandleRecall(const float & mDeltaTime)
 	}
 }
 
-// Called to bind functionality to input
-void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
-{
-	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
-	// Binding of axis mappings
-	PlayerInputComponent->BindAxis("MoveForward", this, &ATimeTravelController::MoveForward);
-	PlayerInputComponent->BindAxis("MoveRight", this, &ATimeTravelController::MoveRight);
-	PlayerInputComponent->BindAxis("CameraHorizontal", this, &ATimeTravelController::MoveCameraHorizontal);
-	PlayerInputComponent->BindAxis("CameraVertical", this, &ATimeTravelController::MoveCameraVertical);
-
-	// Binding of action mappings
-	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ATimeTravelController::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ATimeTravelController::StopJump);
-	PlayerInputComponent->BindAction("Ability", IE_Pressed, this, &ATimeTravelController::Recall);
-	PlayerInputComponent->BindAction("ObjectPickUp", IE_Pressed, this, &ATimeTravelController::HandleObjectPickUpInput);
-}
-
-void ATimeTravelController::Jump()
-{
-	if (JumpCount < 2)
-	{
-		LaunchCharacter(FVector(0.0f, 0.0f, JumpLaunchVelocity), false, true);
-		JumpCount++;
-	}
-}
-
-void ATimeTravelController::StopJump()
-{
-	Super::StopJumping();
-}
-
-void ATimeTravelController::MoveForward(float mValue)
-{
-	if (!IsClimbing)
-	{
-		// Determining whether player character is running forward in order to set the camera component's field of view accordingly
-		mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
-
-		AddMovementInput(GetActorForwardVector(), mValue);
-	}
-}
-
-void ATimeTravelController::MoveRight(float mValue)
-{
-	if (!IsClimbing)
-	{
-		AddMovementInput(GetActorRightVector(), mValue);
-	}
-}
-
-void ATimeTravelController::MoveCameraHorizontal(float mAmount)
-{
-	if (!IsClimbing)
-	{
-		AddControllerYawInput(mAmount);
-	}
-}
-
-void ATimeTravelController::MoveCameraVertical(float mAmount)
-{
-	if (!IsClimbing)
-	{
-		AddControllerPitchInput(mAmount);
-	}
-}
-
 void ATimeTravelController::Recall()
 {
 	if (RecallTransforms.Num() > 0)
@@ -382,9 +281,98 @@ void ATimeTravelController::Recall()
 	}
 }
 
+void ATimeTravelController::AddRecallTransformToArray()
+{
+	// Only do this while recall is inactive
+	if (CanSetPosition)
+	{
+		// Only add elements to RecallTransforms if it is empty or if the location has actually changed
+		if (RecallTransforms.Num() == 0)
+		{
+			RecallTransforms.Add(GetActorTransform());
+		}
+		else if (!RecallTransforms.Last().GetLocation().Equals(GetActorTransform().GetLocation()))
+		{
+			RecallTransforms.Add(GetActorTransform());
+
+			if (EnableDebug && EnableRecallDebug)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
+			}
+		}
+	}
+}
+
+// Removes elements from RecallTransforms if the number of elements is above a certain limit
+void ATimeTravelController::RemoveRecallTransforms()
+{
+	if (CanSetPosition)
+	{
+		if (RecallTransforms.Num() >= MaxStoredRecallTransforms)
+		{
+			RecallTransforms.RemoveAt(0);
+
+			if (EnableDebug && EnableRecallDebug)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("Removed: %s"), *RecallTransforms[0].ToString());
+			}
+		}
+	}
+}
+
 void ATimeTravelController::ResetRecallCooldown()
 {
 	CanRecall = true;
+}
+
+void ATimeTravelController::WallClimbUpdate()
+{
+	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
+	{
+		if (WallClimbHitResult.GetActor()->ActorHasTag("Climbable"))
+		{
+			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
+
+			if (EnableDebug && EnableWallClimbDebug)
+			{
+				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
+			}
+
+			if (ClimbTime != 0.0f)
+			{
+				if (ClimbTime <= ClimbTimeMax)
+				{
+					LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+				}
+			}
+		}
+	}
+	else
+	{
+		ClimbTime = 0.0f;
+	}
+
+	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
+}
+
+void ATimeTravelController::ObjectPickUpUpdate()
+{
+	if (IsHoldingObject)
+	{
+		ObjectPickUpPhysicsHandle->SetTargetLocation(ObjectPickUpLineTraceEnd->GetComponentLocation());
+	}
+}
+
+void ATimeTravelController::HandleObjectPickUpInput()
+{
+	if (IsHoldingObject)
+	{
+		DropObject();
+	}
+	else
+	{
+		PickUpObject();
+	}
 }
 
 void ATimeTravelController::PickUpObject()
@@ -411,24 +399,67 @@ void ATimeTravelController::DropObject()
 	IsHoldingObject = false;
 }
 
-void ATimeTravelController::AddRecallTransformToArray()
+void ATimeTravelController::OnWallRunCollisionBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
 {
-	// Only do this while recall is inactive
-	if (CanSetPosition)
-	{
-		// Only add elements to RecallTransforms if it is empty or if the location has actually changed
-		if (RecallTransforms.Num() == 0)
-		{
-			RecallTransforms.Add(GetActorTransform());
-		}
-		else if (!RecallTransforms.Last().GetLocation().Equals(GetActorTransform().GetLocation()))
-		{
-			RecallTransforms.Add(GetActorTransform());
+	JumpCount = 0;
+	WallRunDirection = Camera->GetForwardVector();
 
-			if (EnableDebug && EnableRecallDebug)
-			{
-				UE_LOG(LogTemp, Warning, TEXT("Added: %s"), *GetActorTransform().ToString());
-			}
+	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
+	{
+		IsWallRunning = true;
+	}
+}
+
+void ATimeTravelController::OnWallRunCollisionEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
+{
+	if (OtherActor->ActorHasTag("Climbable"))
+	{
+		WallRunEndReset();
+	}
+}
+
+void ATimeTravelController::WallRunEndReset()
+{
+	GetCharacterMovement()->GravityScale = 1.0f;
+	GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 0.0f));
+	IsWallRunning = false;
+}
+
+void ATimeTravelController::WallRunUpdate()
+{
+	if (GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar")) > 0.0f)
+	{
+		if (IsWallRunning)
+		{
+			GetCharacterMovement()->GravityScale = 0.0f;
+			GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 1.0f));
+			GetCharacterMovement()->AddForce(WallRunDirection * 20000.0f);	// TODO: Replace hardcoded value 
 		}
+		else
+		{
+			WallRunEndReset();
+		}
+	}
+	else
+	{
+		WallRunEndReset();
+	}
+}
+
+// Sets the camera component's field of view depending on the situation
+void ATimeTravelController::SetFieldOfView(const float & mDeltaTime)
+{
+
+	if (IsRunningForward && !IsRecallActive && Camera->FieldOfView < ForwardFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, ForwardFieldOfView, mDeltaTime, FieldOfViewSpeed);
+	}
+	else if (IsRecallActive && Camera->FieldOfView > RecallFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, RecallFieldOfView, mDeltaTime, FieldOfViewSpeed);
+	}
+	else if (Camera->FieldOfView != StandardFieldOfView)
+	{
+		Camera->FieldOfView = FMath::FInterpTo(Camera->FieldOfView, StandardFieldOfView, mDeltaTime, FieldOfViewSpeed);
 	}
 }
