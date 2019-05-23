@@ -37,12 +37,8 @@ ATimeTravelController::ATimeTravelController()
 
 	// "Wall Run" category initialisation
 	WallRunSpeed = 20480.0f;
-	WallRunRotationSpeed = 0.005f;
-	WallRunRotationAmount = 16.0f;
 	WallRunDirection = FVector(0.0f);
 	IsWallRunning = false;
-	WallIsLeft = false;
-	WallIsRight = false;
 
 	// "Object Pick Up" category initialisation
 	IsHoldingObject = false;
@@ -64,9 +60,6 @@ ATimeTravelController::ATimeTravelController()
 	WallClimbLineTraceEnd = CreateDefaultSubobject<USceneComponent>("WallClimbLineTraceEnd");
 
 	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
-	WallRunLeftCollision = CreateDefaultSubobject<UBoxComponent>("WallRunLeftCollision");
-	WallRunRightCollision = CreateDefaultSubobject<UBoxComponent>("WallRunRightCollision");
-	WallRunTimeline = CreateDefaultSubobject<UTimelineComponent>("WallRunTimeline");
 
 	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
 	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
@@ -79,8 +72,6 @@ ATimeTravelController::ATimeTravelController()
 	WallClimbLineTraceEnd->SetupAttachment(RootComponent);
 
 	WallRunCollision->SetupAttachment(RootComponent);
-	WallRunLeftCollision->SetupAttachment(RootComponent);
-	WallRunRightCollision->SetupAttachment(RootComponent);
 
 	ObjectPickUpLineTraceEnd->SetupAttachment(Camera);
 
@@ -95,13 +86,6 @@ ATimeTravelController::ATimeTravelController()
 	WallClimbLineTraceEnd->SetWorldLocation(FVector(88.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
-	
-	WallRunLeftCollision->SetWorldLocation(FVector(0.0f, -70.0f, 0.0f));
-	WallRunLeftCollision->SetBoxExtent(FVector(56.0f, 32.0f, 48.0f));
-	WallRunRightCollision->SetWorldLocation(FVector(0.0f, 70.0f, 0.0f));
-	WallRunRightCollision->SetBoxExtent(FVector(56.0f, 32.0f, 48.0f));
-	WallRunTimeline->SetLooping(true);
-	WallRunTimeline->PlayFromStart();
 
 	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(320.0f, 0.0f, 0.0f));
 
@@ -113,8 +97,6 @@ ATimeTravelController::ATimeTravelController()
 	// Delegate setup
 	WallRunCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollisionBegin);
 	WallRunCollision->OnComponentEndOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollisionEnd);
-	WallRunLeftCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunLeftCollision);
-	WallRunRightCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunRightCollision);
 
 	LandedDelegate.AddDynamic(this, &ATimeTravelController::OnCharacterLanded);
 }
@@ -440,45 +422,6 @@ void ATimeTravelController::OnWallRunCollisionBegin(UPrimitiveComponent * Overla
 	}
 }
 
-void ATimeTravelController::OnWallRunLeftCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
-{
-
-	// TODO: WHY U NO TRIGGER?
-	if (EnableDebug)
-	{
-		UE_LOG(LogTemp, Error, TEXT("OnWallRunLeftCollision called."));
-	}
-
-	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
-	{
-		WallIsLeft = true;
-
-		if (EnableDebug)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Wall is on the left."));
-		}
-	}
-}
-
-void ATimeTravelController::OnWallRunRightCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult)
-{
-	// TODO: WHY U NO TRIGGER?
-	if (EnableDebug)
-	{
-		UE_LOG(LogTemp, Error, TEXT("OnWallRunRightCollision called."));
-	}
-
-	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
-	{
-		WallIsRight = true;
-
-		if (EnableDebug)
-		{
-			UE_LOG(LogTemp, Error, TEXT("Wall is on the right."));
-		}
-	}
-}
-
 void ATimeTravelController::OnWallRunCollisionEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
 	if (OtherActor->ActorHasTag("Climbable"))
@@ -487,51 +430,15 @@ void ATimeTravelController::OnWallRunCollisionEnd(UPrimitiveComponent * Overlapp
 	}
 }
 
-void ATimeTravelController::WallRunRotationUpdate(float mDeltaTime)
-{
-	if (IsRunningForward && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount))*/)
-	{
-			GetController()->SetControlRotation(UKismetMathLibrary::RLerp(
-				GetActorRotation(),
-				FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount),
-				WallRunRotationSpeed,
-				false
-			)
-		);
-	}
-	//else if (WallIsRight && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount)))
-	//{
-	//	UKismetMathLibrary::RLerp(
-	//		GetActorRotation(),
-	//		FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount),
-	//		WallRunRotationSpeed,
-	//		false
-	//	);
-	//}
-	else if (!GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, 90.0f)))
-	{
-		UKismetMathLibrary::RLerp(
-			GetActorRotation(),
-			FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, 0.0f),
-			WallRunRotationSpeed,
-			false
-		);
-	}
-}
-
 void ATimeTravelController::WallRunEndReset()
 {
 	GetCharacterMovement()->GravityScale = 1.0f;
 	GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 0.0f));
 	IsWallRunning = false;
-	WallIsLeft = false;
-	WallIsRight = false;
 }
 
 void ATimeTravelController::WallRunUpdate()
 {
-	WallRunRotationUpdate(GetWorld()->GetDeltaSeconds());
-
 	if (GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar")) > 0.0f)
 	{
 		if (IsWallRunning)

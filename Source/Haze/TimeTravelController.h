@@ -60,15 +60,6 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UBoxComponent* WallRunCollision; 
-	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UBoxComponent* WallRunLeftCollision;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UBoxComponent* WallRunRightCollision;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
-	UTimelineComponent* WallRunTimeline;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* ObjectPickUpLineTraceEnd;
@@ -160,16 +151,7 @@ public:
 	void OnWallRunCollisionBegin(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
 
 	UFUNCTION(BlueprintCallable)
-	void OnWallRunLeftCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
-
-	UFUNCTION(BlueprintCallable)
-	void OnWallRunRightCollision(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult & SweepResult);
-
-	UFUNCTION(BlueprintCallable)
 	void OnWallRunCollisionEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex);
-
-	UFUNCTION(BlueprintCallable)
-	void WallRunRotationUpdate(float mDeltaTime);
 
 	UFUNCTION(BlueprintCallable)
 	void WallRunUpdate();
@@ -177,23 +159,11 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 	float WallRunSpeed;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float WallRunRotationSpeed;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-	float WallRunRotationAmount;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
 	FVector WallRunDirection;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
 	bool IsWallRunning;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
-	bool WallIsLeft;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Run")
-	bool WallIsRight;
 
 
 	// "Object Pick Up" category

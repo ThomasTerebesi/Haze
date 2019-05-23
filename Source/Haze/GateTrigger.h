@@ -39,7 +39,7 @@ public:
 	UBoxComponent* TriggerBox;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
-	AGateWithTriggers* AssignedGate;
+	TArray<AGateWithTriggers*> AssignedGates;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
 	bool TriggeredByObjectOverlap;
@@ -57,7 +57,7 @@ public:
 	bool DebugEnabled;
 
 	UFUNCTION(BlueprintCallable)
-	bool RegisterWithAssignedGate();
+	void RegisterWithAssignedGates();
 
 	UFUNCTION()
 	void OnOverlapBegin(class UPrimitiveComponent* OverlappedComp, class AActor* OtherActor, class UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

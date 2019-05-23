@@ -32,7 +32,7 @@ void AGateTrigger::BeginPlay()
 {
 	Super::BeginPlay();
 	
-	RegisterWithAssignedGate();
+	RegisterWithAssignedGates();
 }
 
 // Called every frame
@@ -42,17 +42,14 @@ void AGateTrigger::Tick(float DeltaTime)
 
 }
 
-bool AGateTrigger::RegisterWithAssignedGate()
+void AGateTrigger::RegisterWithAssignedGates()
 {
-	if (AssignedGate->IsValidLowLevelFast())
+	for (AGateWithTriggers* Gate : AssignedGates)
 	{
-		AssignedGate->RegisterTrigger(this);
-
-		return true;
-	}
-	else
-	{
-		return false;
+		if (Gate->IsValidLowLevelFast())
+		{
+			Gate->RegisterTrigger(this);
+		}
 	}
 }
 
@@ -82,7 +79,10 @@ void AGateTrigger::OnOverlapBegin(UPrimitiveComponent * OverlappedComp, AActor *
 
 	if (MakesGateStayOpen)
 	{
-		AssignedGate->GateStaysOpen = true;
+		for (AGateWithTriggers* Gate : AssignedGates)
+		{
+			Gate->GateStaysOpen = true;
+		}
 	}
 }
 
