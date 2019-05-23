@@ -68,6 +68,9 @@ public:
 	UBoxComponent* WallRunRightCollision;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UTimelineComponent* WallRunTimeline;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	USceneComponent* ObjectPickUpLineTraceEnd;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)

@@ -37,7 +37,7 @@ ATimeTravelController::ATimeTravelController()
 
 	// "Wall Run" category initialisation
 	WallRunSpeed = 20480.0f;
-	WallRunRotationSpeed = 8.0f;
+	WallRunRotationSpeed = 0.005f;
 	WallRunRotationAmount = 16.0f;
 	WallRunDirection = FVector(0.0f);
 	IsWallRunning = false;
@@ -66,6 +66,7 @@ ATimeTravelController::ATimeTravelController()
 	WallRunCollision = CreateDefaultSubobject<UBoxComponent>("WallRunCollision");
 	WallRunLeftCollision = CreateDefaultSubobject<UBoxComponent>("WallRunLeftCollision");
 	WallRunRightCollision = CreateDefaultSubobject<UBoxComponent>("WallRunRightCollision");
+	WallRunTimeline = CreateDefaultSubobject<UTimelineComponent>("WallRunTimeline");
 
 	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
 	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
@@ -91,7 +92,7 @@ ATimeTravelController::ATimeTravelController()
 
 	Camera->FieldOfView = StandardFieldOfView;
 
-	WallClimbLineTraceEnd->SetWorldLocation(FVector(80.0f, 0.0f, 0.0f));
+	WallClimbLineTraceEnd->SetWorldLocation(FVector(88.0f, 0.0f, 0.0f));
 
 	WallRunCollision->SetBoxExtent(FVector(56.0f, 92.0f, 56.0f));
 	
@@ -99,11 +100,15 @@ ATimeTravelController::ATimeTravelController()
 	WallRunLeftCollision->SetBoxExtent(FVector(56.0f, 32.0f, 48.0f));
 	WallRunRightCollision->SetWorldLocation(FVector(0.0f, 70.0f, 0.0f));
 	WallRunRightCollision->SetBoxExtent(FVector(56.0f, 32.0f, 48.0f));
+	WallRunTimeline->SetLooping(true);
+	WallRunTimeline->PlayFromStart();
 
 	ObjectPickUpLineTraceEnd->SetWorldLocation(FVector(320.0f, 0.0f, 0.0f));
 
 	GetCapsuleComponent()->SetCapsuleHalfHeight(96.0f);
 	GetCapsuleComponent()->SetCapsuleRadius(80.0f);
+
+	GetCharacterMovement()->AirControl = 0.5;
 
 	// Delegate setup
 	WallRunCollision->OnComponentBeginOverlap.AddDynamic(this, &ATimeTravelController::OnWallRunCollisionBegin);
@@ -157,7 +162,7 @@ void ATimeTravelController::SetupPlayerInputComponent(UInputComponent* PlayerInp
 
 void ATimeTravelController::Jump()
 {
-	if (JumpCount < 2)
+	if (JumpCount < MaxJumps)
 	{
 		LaunchCharacter(FVector(0.0f, 0.0f, JumpLaunchVelocity), false, true);
 		JumpCount++;
@@ -484,25 +489,26 @@ void ATimeTravelController::OnWallRunCollisionEnd(UPrimitiveComponent * Overlapp
 
 void ATimeTravelController::WallRunRotationUpdate(float mDeltaTime)
 {
-	if (WallIsLeft && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount)))
+	if (IsRunningForward && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount))*/)
 	{
-		UKismetMathLibrary::RLerp(
-			GetActorRotation(),
-			FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount),
-			WallRunRotationSpeed,
-			false
+			GetController()->SetControlRotation(UKismetMathLibrary::RLerp(
+				GetActorRotation(),
+				FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount),
+				WallRunRotationSpeed,
+				false
+			)
 		);
 	}
-	else if (WallIsRight && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount)))
-	{
-		UKismetMathLibrary::RLerp(
-			GetActorRotation(),
-			FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount),
-			WallRunRotationSpeed,
-			false
-		);
-	}
-	else if (!GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, WallRunRotationAmount)))
+	//else if (WallIsRight && !GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount)))
+	//{
+	//	UKismetMathLibrary::RLerp(
+	//		GetActorRotation(),
+	//		FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, -WallRunRotationAmount),
+	//		WallRunRotationSpeed,
+	//		false
+	//	);
+	//}
+	else if (!GetActorRotation().Equals(FRotator(GetActorRotation().Pitch, GetActorRotation().Yaw, 90.0f)))
 	{
 		UKismetMathLibrary::RLerp(
 			GetActorRotation(),
