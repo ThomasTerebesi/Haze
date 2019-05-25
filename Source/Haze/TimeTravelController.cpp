@@ -209,18 +209,18 @@ void ATimeTravelController::RecallUpdate(const float & mDeltaTime)
 		{
 			if (ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner()->IsA(AAccessKey::StaticClass()))
 			{
-				APortableObject* HeldObject = Cast<APortableObject>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
+				AAccessKey* HeldKey = Cast<AAccessKey>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
 
-				if (HeldObject->DroppedOnRecall)
+				if (HeldKey->DroppedOnRecall)
 				{
 					DropObject();
 				}
 			}
 			else if (ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner()->IsA(APortableObject::StaticClass()))
 			{
-				AAccessKey* HeldKey = Cast<AAccessKey>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
+				APortableObject* HeldObject = Cast<APortableObject>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
 
-				if (HeldKey->DroppedOnRecall)
+				if (HeldObject->DroppedOnRecall)
 				{
 					DropObject();
 				}

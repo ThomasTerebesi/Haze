@@ -9,9 +9,6 @@
 
 #include "GameFramework/Actor.h"
 
-#include "AccessKey.h"
-#include "GateWithTriggers.h"
-
 #include "GateTrigger.generated.h"
 
 class AGateWithTriggers;
@@ -46,10 +43,16 @@ public:
 	TArray<AGateWithTriggers*> AssignedGates;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
-	bool TriggeredByObjectOverlap;
+	bool TriggeredByObjectOverlapOnly;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
-	bool TriggeredByAccessKeyOverlap;
+	bool TriggeredByAccessKeyOverlapOnly;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
+	bool TriggeredByPlayerOverlapOnly;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
+	bool TriggeredByAnyOverlap;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GateTrigger")
 	bool MakesGateStayOpen;

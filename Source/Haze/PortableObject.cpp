@@ -16,6 +16,8 @@ APortableObject::APortableObject()
 	StaticMesh->SetSimulatePhysics(true);
 	StaticMesh->SetGenerateOverlapEvents(true);
 	StaticMesh->SetCollisionProfileName("PhysicsActor");
+
+	DroppedOnRecall = false;
 }
 
 // Called when the game starts or when spawned
