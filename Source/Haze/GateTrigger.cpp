@@ -9,11 +9,13 @@ AGateTrigger::AGateTrigger()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
-	Mesh = CreateDefaultSubobject<UStaticMeshComponent>("Mesh");
+	SceneComponent = CreateDefaultSubobject<USceneComponent>("SceneComponent");
+	StaticMesh = CreateDefaultSubobject<UStaticMeshComponent>("StaticMesh");
 	TriggerBox = CreateDefaultSubobject<UBoxComponent>("TriggerBox");
 
-	RootComponent = Mesh;
-	TriggerBox->SetupAttachment(Mesh);
+	RootComponent = SceneComponent;
+	StaticMesh->SetupAttachment(SceneComponent);
+	TriggerBox->SetupAttachment(StaticMesh);
 
 	TriggerBox->SetCollisionProfileName(TEXT("Trigger"));
 	TriggerBox->OnComponentBeginOverlap.AddDynamic(this, &AGateTrigger::OnOverlapBegin);

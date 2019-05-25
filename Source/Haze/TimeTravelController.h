@@ -11,8 +11,8 @@
 #include "Components/BoxComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/InputComponent.h"
+#include "Components/PostProcessComponent.h"
 #include "Components/SceneComponent.h"
-#include "Components/TimelineComponent.h"
 
 #include "DrawDebugHelpers.h"
 
@@ -24,6 +24,8 @@
 #include "Kismet/KismetMathLibrary.h"
 
 #include "PhysicsEngine/PhysicsHandleComponent.h"
+
+#include "PortableObject.h"
 
 #include "TimeTravelController.generated.h"
 
@@ -66,6 +68,9 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
 	UPhysicsHandleComponent* ObjectPickUpPhysicsHandle;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly)
+	UPostProcessComponent* PostProcess;
 
 
 	// "Debug" category
@@ -140,7 +145,7 @@ public:
 	float ClimbSpeed;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Wall Climb")
-	bool IsClimbing;
+	bool IsWallClimbing;
 
 	
 	// "Wall Run" category

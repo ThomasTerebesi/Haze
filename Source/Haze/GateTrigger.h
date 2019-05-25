@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 
 #include "Components/BoxComponent.h"
+#include "Components/SceneComponent.h"
 
 #include "GameFramework/Actor.h"
 
@@ -33,7 +34,10 @@ public:
 	virtual void Tick(float DeltaTime) override;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GateTrigger")
-	UStaticMeshComponent* Mesh;
+	USceneComponent* SceneComponent;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GateTrigger")
+	UStaticMeshComponent* StaticMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "GateTrigger")
 	UBoxComponent* TriggerBox;

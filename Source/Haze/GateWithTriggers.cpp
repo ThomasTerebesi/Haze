@@ -41,7 +41,7 @@ void AGateWithTriggers::Tick(float DeltaTime)
 
 	CurrentLocation = GetActorLocation();
 
-	if (IsActivated && !CurrentLocation.Equals(InitialLocation + OpenEndLocation))
+	if ((IsActivated || GateStaysOpen) && !CurrentLocation.Equals(InitialLocation + OpenEndLocation))
 	{
 		SetActorLocation(FMath::VInterpTo(CurrentLocation, InitialLocation + OpenEndLocation, DeltaTime, GateOpenSpeed));
 	}

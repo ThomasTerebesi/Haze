@@ -33,7 +33,7 @@ ATimeTravelController::ATimeTravelController()
 	ClimbTime = 0.0f;
 	ClimbTimeMax = 1.2f;
 	ClimbSpeed = 420.0f;
-	IsClimbing = false;
+	IsWallClimbing = false;
 
 	// "Wall Run" category initialisation
 	WallRunSpeed = 20480.0f;
@@ -64,6 +64,7 @@ ATimeTravelController::ATimeTravelController()
 	ObjectPickUpLineTraceEnd = CreateDefaultSubobject<USceneComponent>("ObjectPickUpLineTraceEnd");
 	ObjectPickUpPhysicsHandle = CreateDefaultSubobject<UPhysicsHandleComponent>("ObjectPickUpPhysicsHandle");
 
+	PostProcess = CreateDefaultSubobject<UPostProcessComponent>("PostProcess");
 
 	// Component hierarchy
 	SpringArm->SetupAttachment(RootComponent);
@@ -163,7 +164,7 @@ void ATimeTravelController::OnCharacterLanded(const FHitResult & mHit)
 
 void ATimeTravelController::MoveForward(float mValue)
 {
-	if (!IsClimbing && !IsWallRunning)
+	if (!IsWallClimbing && !IsWallRunning)
 	{
 		// Determining whether player character is running forward in order to set the camera component's field of view accordingly
 		mValue > 0.0f ? IsRunningForward = true : IsRunningForward = false;
@@ -174,7 +175,7 @@ void ATimeTravelController::MoveForward(float mValue)
 
 void ATimeTravelController::MoveRight(float mValue)
 {
-	if (!IsClimbing && !IsWallRunning)
+	if (!IsWallClimbing && !IsWallRunning)
 	{
 		AddMovementInput(GetActorRightVector(), mValue);
 	}
@@ -182,7 +183,7 @@ void ATimeTravelController::MoveRight(float mValue)
 
 void ATimeTravelController::MoveCameraHorizontal(float mAmount)
 {
-	if (!IsClimbing)
+	if (!IsWallClimbing)
 	{
 		AddControllerYawInput(mAmount);
 	}
@@ -190,7 +191,7 @@ void ATimeTravelController::MoveCameraHorizontal(float mAmount)
 
 void ATimeTravelController::MoveCameraVertical(float mAmount)
 {
-	if (!IsClimbing)
+	if (!IsWallClimbing)
 	{
 		AddControllerPitchInput(mAmount);
 	}
@@ -207,6 +208,15 @@ void ATimeTravelController::RecallUpdate(const float & mDeltaTime)
 		if (IsHoldingObject)
 		{
 			if (ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner()->IsA(AAccessKey::StaticClass()))
+			{
+				APortableObject* HeldObject = Cast<APortableObject>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
+
+				if (HeldObject->DroppedOnRecall)
+				{
+					DropObject();
+				}
+			}
+			else if (ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner()->IsA(APortableObject::StaticClass()))
 			{
 				AAccessKey* HeldKey = Cast<AAccessKey>(ObjectPickUpPhysicsHandle->GetGrabbedComponent()->GetOwner());
 
@@ -339,32 +349,35 @@ void ATimeTravelController::ResetRecallCooldown()
 
 void ATimeTravelController::WallClimbUpdate()
 {
-	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
+	if (!IsWallRunning)
 	{
-		if (WallClimbHitResult.GetActor()->ActorHasTag("Climbable"))
+		if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
 		{
-			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
-
-			if (EnableDebug && EnableWallClimbDebug)
+			if (WallClimbHitResult.GetActor()->ActorHasTag("Traversable"))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
-			}
+				ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
 
-			if (ClimbTime != 0.0f)
-			{
-				if (ClimbTime <= ClimbTimeMax)
+				if (EnableDebug && EnableWallClimbDebug)
 				{
-					LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+					UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
+				}
+
+				if (ClimbTime != 0.0f)
+				{
+					if (ClimbTime <= ClimbTimeMax)
+					{
+						LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		ClimbTime = 0.0f;
-	}
+		else
+		{
+			ClimbTime = 0.0f;
+		}
 
-	ClimbTime > 0.0f ? IsClimbing = true : IsClimbing = false;
+		ClimbTime > 0.0f ? IsWallClimbing = true : IsWallClimbing = false;
+	}
 }
 
 void ATimeTravelController::ObjectPickUpUpdate()
@@ -416,7 +429,7 @@ void ATimeTravelController::OnWallRunCollisionBegin(UPrimitiveComponent * Overla
 	JumpCount = 0;
 	WallRunDirection = Camera->GetForwardVector();
 
-	if (OtherActor->ActorHasTag("Climbable") && GetCharacterMovement()->IsFalling())
+	if (OtherActor->ActorHasTag("Traversable") && GetCharacterMovement()->IsFalling())
 	{
 		IsWallRunning = true;
 	}
@@ -424,7 +437,7 @@ void ATimeTravelController::OnWallRunCollisionBegin(UPrimitiveComponent * Overla
 
 void ATimeTravelController::OnWallRunCollisionEnd(UPrimitiveComponent * OverlappedComp, AActor * OtherActor, UPrimitiveComponent * OtherComp, int32 OtherBodyIndex)
 {
-	if (OtherActor->ActorHasTag("Climbable"))
+	if (OtherActor->ActorHasTag("Traversable"))
 	{
 		WallRunEndReset();
 	}
@@ -439,22 +452,25 @@ void ATimeTravelController::WallRunEndReset()
 
 void ATimeTravelController::WallRunUpdate()
 {
-	if (GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar")) > 0.0f)
+	if (!IsWallClimbing)
 	{
-		if (IsWallRunning)
+		if (GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar")) > 0.0f)
 		{
-			GetCharacterMovement()->GravityScale = 0.0f;
-			GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 1.0f));
-			GetCharacterMovement()->AddForce(WallRunDirection * WallRunSpeed);
+			if (IsWallRunning)
+			{
+				GetCharacterMovement()->GravityScale = 0.0f;
+				GetCharacterMovement()->SetPlaneConstraintNormal(FVector(0.0f, 0.0f, 1.0f));
+				GetCharacterMovement()->AddForce(WallRunDirection * WallRunSpeed);
+			}
+			else
+			{
+				WallRunEndReset();
+			}
 		}
 		else
 		{
 			WallRunEndReset();
 		}
-	}
-	else
-	{
-		WallRunEndReset();
 	}
 }
 
