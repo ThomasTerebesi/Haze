@@ -31,7 +31,7 @@ ATimeTravelController::ATimeTravelController()
 	// "Wall Climb" category initialisation
 	EnableWallClimb = true;
 	ClimbTime = 0.0f;
-	ClimbTimeMax = 1.2f;
+	ClimbTimeMax = 1.6f;
 	ClimbSpeed = 420.0f;
 	IsWallClimbing = false;
 
@@ -349,32 +349,35 @@ void ATimeTravelController::ResetRecallCooldown()
 
 void ATimeTravelController::WallClimbUpdate()
 {
-	if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
+	if (!IsWallRunning)
 	{
-		if (WallClimbHitResult.GetActor()->ActorHasTag("Traversable"))
+		if (GetWorld()->LineTraceSingleByChannel(WallClimbHitResult, GetActorLocation(), WallClimbLineTraceEnd->GetComponentLocation(), ECollisionChannel::ECC_Visibility))
 		{
-			ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
-
-			if (EnableDebug && EnableWallClimbDebug)
+			if (WallClimbHitResult.GetActor()->ActorHasTag("Traversable"))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
-			}
+				ClimbTime = GetWorld()->GetFirstPlayerController()->GetInputKeyTimeDown(FKey("SpaceBar"));
 
-			if (ClimbTime != 0.0f)
-			{
-				if (ClimbTime <= ClimbTimeMax)
+				if (EnableDebug && EnableWallClimbDebug)
 				{
-					LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+					UE_LOG(LogTemp, Warning, TEXT("ClimbTime: %f"), ClimbTime);
+				}
+
+				if (ClimbTime != 0.0f)
+				{
+					if (ClimbTime <= ClimbTimeMax)
+					{
+						LaunchCharacter(FVector(0.0f, 0.0f, ClimbSpeed), true, true);
+					}
 				}
 			}
 		}
-	}
-	else
-	{
-		ClimbTime = 0.0f;
-	}
+		else
+		{
+			ClimbTime = 0.0f;
+		}
 
-	ClimbTime > 0.0f ? IsWallClimbing = true : IsWallClimbing = false;
+		ClimbTime > 0.0f ? IsWallClimbing = true : IsWallClimbing = false;
+	}
 }
 
 void ATimeTravelController::ObjectPickUpUpdate()
