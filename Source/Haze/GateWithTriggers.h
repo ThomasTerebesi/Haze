@@ -66,6 +66,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate with Triggers")
 	bool GateStaysOpen;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gate with Triggers")
+	bool IsTraversable;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Gate with Triggers")
 	FName Tag;
 

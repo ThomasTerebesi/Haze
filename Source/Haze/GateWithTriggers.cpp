@@ -18,6 +18,8 @@ AGateWithTriggers::AGateWithTriggers()
 	GateCloseSpeed = 8.0f;
 	ActivatesWithAnyTrigger = false;
 	GateStaysOpen = false;
+	IsTraversable = true;
+	Tag = "Traversable";
 
 	DebugEnabled = true;
 
@@ -32,6 +34,11 @@ void AGateWithTriggers::BeginPlay()
 	InitialLocation = GetActorLocation();
 
 	GetWorld()->GetTimerManager().SetTimer(AllGateTriggersActiveDelayHandle, this, &AGateWithTriggers::AllGateTriggersAreActive, AllGateTriggersActiveDelay, true);
+
+	if (IsTraversable)
+	{
+		Tags.Add(Tag);
+	}
 }
 
 // Called every frame
